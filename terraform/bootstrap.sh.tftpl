@@ -1,0 +1,28 @@
+#!/bin/bash
+# Bootstrap mínimo (K17): usuário administrativo + Tailscale. O resto é com o Ansible.
+#
+# Roda como startup-script do Google guest agent: as imagens Debian da GCP não têm
+# cloud-init (o user-data é ignorado). Executa a CADA boot, então tudo é idempotente.
+set -euo pipefail
+
+USUARIO="${usuario}"
+
+if ! id "$USUARIO" >/dev/null 2>&1; then
+  useradd --create-home --shell /bin/bash --groups sudo "$USUARIO"
+  passwd --lock "$USUARIO"
+  echo "$USUARIO ALL=(ALL) NOPASSWD:ALL" > "/etc/sudoers.d/90-$USUARIO"
+  chmod 0440 "/etc/sudoers.d/90-$USUARIO"
+fi
+
+if ! command -v tailscale >/dev/null 2>&1; then
+  curl -fsSL https://tailscale.com/install.sh | sh
+fi
+
+# Só registra se ainda não estiver na tailnet (a key não é necessária nos boots seguintes)
+if ! tailscale status >/dev/null 2>&1; then
+  tailscale up \
+    --auth-key="${tailscale_auth_key}" \
+    --hostname="${hostname}" \
+    --advertise-tags="${tailscale_tag}" \
+    --ssh
+fi

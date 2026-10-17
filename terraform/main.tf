@@ -59,12 +59,21 @@ resource "google_compute_firewall" "iap_ssh" {
   }
 }
 
-# ---------- identidade dos nós: conta de serviço sem papéis (menor privilégio)
-# Papéis só entram quando algo precisar (ex.: GCE PD CSI driver na Fase E).
+# ---------- identidade dos nós: só os papéis mínimos recomendados para VMs
+# (escrita de logs e métricas). Outros papéis entram quando algo precisar
+# (ex.: GCE PD CSI driver na Fase E).
 
 resource "google_service_account" "nos" {
   account_id   = "k8s-lab-nos"
   display_name = "Nós do k8s-lab"
+}
+
+resource "google_project_iam_member" "nos" {
+  for_each = toset(["roles/logging.logWriter", "roles/monitoring.metricWriter"])
+
+  project = var.projeto
+  role    = each.value
+  member  = "serviceAccount:${google_service_account.nos.email}"
 }
 
 # ---------- VMs
@@ -99,7 +108,8 @@ resource "google_compute_instance" "no" {
   }
 
   metadata = {
-    user-data = templatefile("${path.module}/cloud-init.yaml.tftpl", {
+    # Debian na GCP não tem cloud-init: o bootstrap é um startup-script
+    startup-script = templatefile("${path.module}/bootstrap.sh.tftpl", {
       hostname           = each.key
       usuario            = var.usuario_admin
       tailscale_auth_key = var.tailscale_auth_key
@@ -121,11 +131,6 @@ resource "google_compute_instance" "no" {
 
   shielded_instance_config {
     enable_secure_boot = true
-  }
-
-  # mudar o cloud-init (ex.: nova auth key) não deve recriar nós já registrados
-  lifecycle {
-    ignore_changes = [metadata["user-data"]]
   }
 
   allow_stopping_for_update = true

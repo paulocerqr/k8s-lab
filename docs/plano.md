@@ -142,7 +142,7 @@ Escopo mínimo: **O1–O7**. **O8** e o staging do **UtilityDev** são diferenci
 | K13 | Lab **isolado da produção**: n8n próprio, banco próprio, bot/chat de Telegram próprios | Reaproveitar serviços de casa | Falha no lab não afeta produção e vice-versa. |
 | K14 | Imagens no **GHCR** | Artifact Registry | Sobrevive ao fim dos créditos. Pacotes privados exigem `imagePullSecret` (SealedSecret) no cluster. |
 | K16 | (Bônus) Containerizar o UtilityDev **num branch/PR do próprio repo**, sem mudar a produção | Dockerfiles só no k8s-lab | Imagem pertence ao app; produção segue no compose atual. |
-| K17 | **cloud-init** (via Terraform) para bootstrap mínimo + **Ansible** para configuração dos nós | Só Ansible; só cloud-init/scripts bash; configuração manual | cloud-init coloca a VM na tailnet no boot (resolve o acesso SSH sem porta pública); Ansible orquestra a ordem `init` → `join` e é idempotente. VMs serão recriadas várias vezes (erro, fallback k3s, ponte AWS); playbooks do Beszel/Tailscale reaproveitáveis em outros hosts. |
+| K17 | **startup-script** (via Terraform) para bootstrap mínimo + **Ansible** para configuração dos nós | Só Ansible; cloud-init; configuração manual | O startup-script coloca a VM na tailnet no boot (as imagens Debian da GCP não têm cloud-init; ver incidente 001) (resolve o acesso SSH sem porta pública); Ansible orquestra a ordem `init` → `join` e é idempotente. VMs serão recriadas várias vezes (erro, fallback k3s, ponte AWS); playbooks do Beszel/Tailscale reaproveitáveis em outros hosts. |
 | K18 | **Manual primeiro, automatizar depois**: kubeadm feito à mão uma vez com anotações, depois convertido em playbooks | Escrever playbooks antes de entender os passos | Aprendizado (CKA) e cumprimento do marco de 20/10 sem depender da automação pronta. |
 | K19 | **VPC própria** (`lab`, subnet `10.10.0.0/24`) | VPC `default` | A `default` libera SSH/RDP/ICMP para `0.0.0.0/0`; uma VPC dedicada começa fechada e é destruída junto com o lab. |
 | K20 | **Tailscale SSH** para acessar os nós | Chaves SSH gerenciadas (metadata/OS Login) | Sem chaves para distribuir/rotacionar; acesso controlado pelas ACLs da tailnet; o Ansible usa o mesmo caminho. IAP fica como emergência. |
@@ -249,7 +249,7 @@ k8s-lab/
 │   ├── variables.tf
 │   ├── outputs.tf
 │   └── terraform.tfvars.example  # sem IDs reais no Git
-│   └── cloud-init.yaml.tftpl     # bootstrap: usuário admin + Tailscale (tag:k8s-lab, SSH) e nada mais
+│   └── bootstrap.sh.tftpl        # startup-script: usuário admin + Tailscale (tag:k8s-lab, SSH)
 ├── ansible/
 │   ├── ansible.cfg
 │   ├── inventory.example.ini     # hosts por nome MagicDNS do Tailscale; grupos control_plane / workers
@@ -311,7 +311,7 @@ App   (40%): Job Radar Fase 0     →  Job Radar Fase 1 (MVP) →  calibração 
 - [ ] Remover o sistema `serverk3s` do Beszel Hub e aproveitar para **rotacionar o token** pendente do `beszel-infra`.
 - [ ] Remover as VMs antigas da tailnet; **excluir as VMs e discos** criados pelo console (conferir snapshots/IPs órfãos).
 - [ ] ACL `tag:k8s-lab` no Tailscale (tagOwners + regra de SSH); gerar auth key **reutilizável, pré-autorizada, com a tag e validade de 1 dia** (K21).
-- [ ] Terraform: criar `cp-1`, `worker-1`, `worker-2`, firewall (§3.2) e `cloud-init` com o Tailscale (K17).
+- [ ] Terraform: criar `cp-1`, `worker-1`, `worker-2`, firewall (§3.2) e `startup-script` com o Tailscale (K17).
 - [ ] Conferir os 3 nós na tailnet e SSH funcionando pelo nome MagicDNS.
 - [ ] **Manual (K18):** preparar nós, `kubeadm init` com SANs da tailnet, Cilium, `join` dos workers — registrando cada comando em `notas/kubeadm-manual.md`.
 - [ ] kubectl do CachyOS via Tailscale.
@@ -407,7 +407,7 @@ Se B for adotada: a EC2 entra na tailnet e no Beszel; imagens vêm do mesmo GHCR
 |---|---|
 | kubeadm consome tempo demais | Timebox de 2 dias + fallback k3s (K01) |
 | Automação Ansible atrasa a semana 1 | Cluster manual já cumpre o marco de 20/10; playbooks podem deslizar para a semana 2 sem bloquear a plataforma |
-| Auth key do Tailscale vazada no state do Terraform/cloud-init | Key com tag e validade de 1 dia (inútil depois); variável sensível; `terraform.tfstate` fora do Git; revogar a key após o `apply` |
+| Auth key do Tailscale vazada no state do Terraform ou no metadata da VM | Key com tag e validade de 1 dia (inútil depois); variável sensível; `terraform.tfstate` fora do Git; revogar a key após o `apply` |
 | Gasto acima do previsto (ex.: VMs maiores, discos esquecidos) | Budget alerts; manter 4 + 2 + 2; excluir as VMs antigas logo (discos e IPs parados também cobram) |
 | Nó com local-path cai e leva o Postgres | Backup diário; staging com dados sintéticos |
 | Tailscale fora do ar impede administração | IAP/console serial da GCP como acesso de emergência documentado |

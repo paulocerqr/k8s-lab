@@ -2,7 +2,16 @@
 
 Cluster Kubernetes autogerenciado (kubeadm) em 3 VMs na Google Cloud, montado do zero com Terraform e Ansible, acessado só pela tailnet (Tailscale) e publicado sem portas abertas (Cloudflare Tunnel). A aplicação principal é o [Job Radar](https://github.com/paulocerqr/job-radar).
 
-**Status:** semana 1 de 4 — infraestrutura e cluster. Plano completo, decisões e cronograma: [`docs/plano.md`](docs/plano.md).
+**Status:** semana 1 de 4. Infraestrutura no ar (3 nós na tailnet); próximo passo: kubeadm. Plano completo, decisões e cronograma: [`docs/plano.md`](docs/plano.md).
+
+## Documentação
+
+| Documento | Conteúdo |
+|---|---|
+| [00 — Ferramentas](docs/00-ferramentas.md) | O que é cada ferramenta (gcloud, Terraform, Ansible, kubectl, Helm, Tailscale) e como foi instalada |
+| [01 — Terraform](docs/01-terraform.md) | Cada arquivo do Terraform, o que cria as VMs e a rede, comandos executados |
+| [02 — Acesso pelo Tailscale](docs/02-acesso-tailscale.md) | Tag, auth key, registro automático dos nós e SSH |
+| [Incidente 001](docs/incidentes/001-cloud-init-debian-gcp.md) | Nós fora da tailnet: Debian da GCP sem cloud-init |
 
 ## Arquitetura (resumo)
 

@@ -1,0 +1,9 @@
+# Copie para terraform.tfvars (ignorado pelo Git) e preencha.
+projeto = "seu-projeto-gcp"
+
+# Gere em https://login.tailscale.com/admin/settings/keys:
+# reutilizável, pré-autorizada, tag:k8s-lab, validade de 1 dia (K21).
+# Alternativa: export TF_VAR_tailscale_auth_key=tskey-auth-...
+tailscale_auth_key = "tskey-auth-..."
+
+# ligado = false  # para parar as VMs sem destruir

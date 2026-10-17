@@ -1,0 +1,22 @@
+# Terraform: state e variáveis contêm dados sensíveis (K22)
+.terraform/
+*.tfstate
+*.tfstate.*
+*.tfvars
+!*.tfvars.example
+crash.log
+*.tfplan
+
+# Ansible / kubeconfig
+*.retry
+kubeconfig
+admin.conf
+ansible/inventory.ini
+ansible/group_vars/*.vault.yml.dec
+
+# segredos em geral
+.env
+.env.*
+!.env.example
+*.pem
+*.key

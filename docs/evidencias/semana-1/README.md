@@ -1,4 +1,4 @@
-# Evidências — Semana 1: infraestrutura e cluster
+# Evidências: infraestrutura e cluster
 
 Saídas reais dos comandos de verificação, capturadas em **19/10/2026** no cluster **recriado do zero** com Terraform + Ansible ([04-ansible.md](../../04-ansible.md)).
 

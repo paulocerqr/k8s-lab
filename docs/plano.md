@@ -309,13 +309,13 @@ App   (40%): Job Radar Fase 0     →  Job Radar Fase 1 (MVP) →  calibração 
 - [x] Cotas verificadas (32 vCPUs, 8 IPs, 500 GB SSD). 
 - [ ] Criar budget alerts.
 - [ ] Remover o sistema `serverk3s` do Beszel Hub e aproveitar para **rotacionar o token** pendente do `beszel-infra`.
-- [ ] Remover as VMs antigas da tailnet; **excluir as VMs e discos** criados pelo console (conferir snapshots/IPs órfãos).
-- [ ] ACL `tag:k8s-lab` no Tailscale (tagOwners + regra de SSH); gerar auth key **reutilizável, pré-autorizada, com a tag e validade de 1 dia** (K21).
-- [ ] Terraform: criar `cp-1`, `worker-1`, `worker-2`, firewall (§3.2) e `startup-script` com o Tailscale (K17).
-- [ ] Conferir os 3 nós na tailnet e SSH funcionando pelo nome MagicDNS.
-- [ ] **Manual (K18):** preparar nós, `kubeadm init` com SANs da tailnet, Cilium, `join` dos workers — registrando cada comando em `notas/kubeadm-manual.md`.
-- [ ] kubectl do CachyOS via Tailscale.
-- **Marco (20/10):** `kubectl get nodes` → 3 `Ready`. Se não, acionar fallback k3s (K01).
+- [x] Remover as VMs antigas; **excluir VMs, discos, snapshots e política de snapshot** criados pelo console.
+- [x] ACL `tag:k8s-lab` no Tailscale (tagOwners + regra de SSH); gerar auth key **reutilizável, pré-autorizada, com a tag e validade de 1 dia** (K21).
+- [x] Terraform: criar `cp-1`, `worker-1`, `worker-2`, firewall (§3.2) e `startup-script` com o Tailscale (K17).
+- [x] Conferir os 3 nós na tailnet e SSH funcionando pelo nome MagicDNS.
+- [x] **Manual (K18):** preparar nós, `kubeadm init` com SANs da tailnet, Cilium, `join` dos workers — registrando cada comando em `notas/kubeadm-manual.md`.
+- [x] kubectl do CachyOS via Tailscale.
+- **Marco (20/10):** `kubectl get nodes` → 3 `Ready`. ✅ **cumprido em 19/10** ([03-kubeadm.md](03-kubeadm.md)).
 - [ ] **Automação (21–23/10):** converter as notas em playbooks (`00`–`05`); Beszel agent via `01-beszel-agent.yml`.
 - [ ] **Teste de recriação:** `terraform destroy` → `terraform apply` → `ansible-playbook site.yml` até 3 nós `Ready` **sem nenhum passo manual**; cronometrar.
 - **Marco (23/10):** cluster reproduzível do zero; tempo de recriação registrado no README.

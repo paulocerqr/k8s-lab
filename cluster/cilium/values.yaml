@@ -1,0 +1,28 @@
+# Cilium (CNI) — chart cilium/cilium 1.20.3
+# helm upgrade --install cilium cilium/cilium --version 1.20.3 -n kube-system -f cluster/cilium/values.yaml
+
+# IPs dos pods: cada nó recebe um pedaço (/24) do podSubnet do kubeadm (10.244.0.0/16),
+# atribuído pelo controller-manager. O padrão do Cilium ("cluster-pool" em 10.0.0.0/8)
+# colidiria com a VPC do lab (10.10.0.0/24).
+ipam:
+  mode: kubernetes
+
+# Pacotes entre pods de nós diferentes vão encapsulados (VXLAN) por cima da rede da VPC.
+# Não exige rotas na GCP; o firewall "lab-interno" já libera o tráfego entre os nós.
+routingMode: tunnel
+tunnelProtocol: vxlan
+
+# O kubeadm instalou o kube-proxy; mantemos ele cuidando dos Services.
+# Substituí-lo pelo eBPF do Cilium é uma evolução possível (exige reinstalar sem kube-proxy).
+kubeProxyReplacement: false
+
+operator:
+  replicas: 1
+
+# Hubble: visibilidade do tráfego entre pods (fluxos, drops, políticas)
+hubble:
+  enabled: true
+  relay:
+    enabled: true
+  ui:
+    enabled: true

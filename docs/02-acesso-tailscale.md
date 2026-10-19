@@ -61,9 +61,9 @@ tailscale up \
 Resultado (cerca de 50 s após o boot):
 
 ```
-cp-1      online  [tag:k8s-lab]  100.94.22.65
-worker-1  online  [tag:k8s-lab]  100.86.98.12
-worker-2  online  [tag:k8s-lab]  100.68.152.32
+cp-1      online  [tag:k8s-lab]  100.94.x.x
+worker-1  online  [tag:k8s-lab]  100.86.x.x
+worker-2  online  [tag:k8s-lab]  100.68.x.x
 ```
 
 ## Passo 4: acessar

@@ -1,0 +1,60 @@
+# Passo 2 do docs/03-kubeadm.md: kubeadm init no control plane.
+- name: Control plane (kubeadm init)
+  hosts: control_plane
+  gather_facts: true
+
+  tasks:
+    # Nome e IP do nó na tailnet, lidos do próprio Tailscale: nada da tailnet fica no Git
+    - name: Ler a identidade do nó na tailnet
+      ansible.builtin.command: tailscale status --self --json
+      register: tailscale_status
+      changed_when: false
+      check_mode: false
+
+    - name: Calcular endereços do API server
+      ansible.builtin.set_fact:
+        ip_vpc: "{{ ansible_facts.default_ipv4.address }}"
+        nome_tailnet: "{{ (tailscale_status.stdout | from_json).Self.DNSName | regex_replace('\\.$', '') }}"
+        ip_tailnet: "{{ (tailscale_status.stdout | from_json).Self.TailscaleIPs | reject('search', ':') | first }}"
+
+    - name: Gravar a configuração do kubeadm
+      ansible.builtin.template:
+        src: ../templates/kubeadm-config.yaml.j2
+        dest: /etc/kubernetes/kubeadm-config.yaml
+        owner: root
+        group: root
+        mode: "0600"
+
+    - name: Baixar as imagens do control plane
+      ansible.builtin.command: kubeadm config images pull --config /etc/kubernetes/kubeadm-config.yaml
+      args:
+        creates: /etc/kubernetes/admin.conf
+
+    # "creates" torna o passo idempotente: se o cluster já existe, nada é feito
+    - name: kubeadm init
+      ansible.builtin.command: kubeadm init --config /etc/kubernetes/kubeadm-config.yaml
+      args:
+        creates: /etc/kubernetes/admin.conf
+      register: kubeadm_init
+
+    - name: Mostrar o fim da saída do init
+      ansible.builtin.debug:
+        msg: "{{ kubeadm_init.stdout_lines[-4:] | reject('search', 'token|sha256') | list }}"
+      when: kubeadm_init is changed
+
+    - name: Diretório .kube com o dono certo
+      ansible.builtin.file:
+        path: "/home/{{ ansible_user | default('lab') }}/.kube"
+        state: directory
+        owner: "{{ ansible_user | default('lab') }}"
+        group: "{{ ansible_user | default('lab') }}"
+        mode: "0700"
+
+    - name: kubectl para o usuário lab no próprio nó
+      ansible.builtin.copy:
+        src: /etc/kubernetes/admin.conf
+        dest: "/home/{{ ansible_user | default('lab') }}/.kube/config"
+        remote_src: true
+        owner: "{{ ansible_user | default('lab') }}"
+        group: "{{ ansible_user | default('lab') }}"
+        mode: "0600"

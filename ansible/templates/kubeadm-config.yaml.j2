@@ -1,0 +1,27 @@
+# Gerado pelo Ansible (playbooks/02-control-plane.yml). Ver docs/03-kubeadm.md, passo 2.
+apiVersion: kubeadm.k8s.io/v1beta4
+kind: InitConfiguration
+localAPIEndpoint:
+  advertiseAddress: {{ ip_vpc }}          # IP na VPC: os workers chegam ao API server por aqui
+  bindPort: 6443
+nodeRegistration:
+  name: {{ inventory_hostname }}
+  criSocket: unix:///run/containerd/containerd.sock
+---
+apiVersion: kubeadm.k8s.io/v1beta4
+kind: ClusterConfiguration
+kubernetesVersion: v{{ kubernetes_versao }}
+clusterName: k8s-lab
+networking:
+  podSubnet: {{ pod_subnet }}
+  serviceSubnet: {{ service_subnet }}
+apiServer:
+  certSANs:                               # o kubectl do PC chega pela tailnet
+    - {{ inventory_hostname }}
+    - {{ nome_tailnet }}
+    - {{ ip_tailnet }}
+    - {{ ip_vpc }}
+---
+apiVersion: kubelet.config.k8s.io/v1beta1
+kind: KubeletConfiguration
+cgroupDriver: systemd                     # igual ao SystemdCgroup = true do containerd

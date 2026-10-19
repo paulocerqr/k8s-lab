@@ -1,0 +1,9 @@
+# Cluster completo, na ordem. Idempotente: rodar de novo só corrige o que estiver diferente.
+#   cd ansible && ansible-playbook site.yml
+- import_playbook: playbooks/00-base.yml
+- import_playbook: playbooks/01-kubernetes-pacotes.yml
+- import_playbook: playbooks/02-control-plane.yml
+- import_playbook: playbooks/03-workers.yml
+- import_playbook: playbooks/04-kubeconfig-local.yml
+- import_playbook: playbooks/05-cilium.yml
+- import_playbook: playbooks/06-beszel-agent.yml

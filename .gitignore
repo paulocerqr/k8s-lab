@@ -11,7 +11,6 @@ crash.log
 *.retry
 kubeconfig
 admin.conf
-ansible/inventory.ini
 ansible/group_vars/*.vault.yml.dec
 
 # segredos em geral

@@ -1,0 +1,35 @@
+# Passo 4 do docs/03-kubeadm.md: Cilium (CNI) via Helm, executado no PC de administração.
+- name: Cilium (CNI)
+  hosts: localhost
+  connection: local
+  gather_facts: false
+  become: false
+
+  environment:
+    KUBECONFIG: "{{ kubeconfig_local }}"
+
+  tasks:
+    - name: Repositório de charts do Cilium
+      ansible.builtin.command: helm repo add cilium https://helm.cilium.io/ --force-update
+      changed_when: false
+
+    - name: Ler a versão instalada do Cilium
+      ansible.builtin.command: helm list -n kube-system -f '^cilium$' -o json
+      register: cilium_instalado
+      changed_when: false
+      check_mode: false
+
+    - name: Instalar/atualizar o Cilium {{ cilium_versao }}
+      ansible.builtin.command: >-
+        helm upgrade --install cilium cilium/cilium
+        --version {{ cilium_versao }}
+        --namespace kube-system
+        -f {{ playbook_dir }}/../../cluster/cilium/values.yaml
+        --wait --timeout 10m
+      when: >-
+        cilium_instalado.stdout | from_json | map(attribute='chart')
+        | select('equalto', 'cilium-' ~ cilium_versao) | list | length == 0
+
+    - name: Esperar todos os nós ficarem Ready
+      ansible.builtin.command: kubectl wait --for=condition=Ready nodes --all --timeout=5m
+      changed_when: false

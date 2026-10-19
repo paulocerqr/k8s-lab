@@ -1,0 +1,98 @@
+# Beszel agent (binário + systemd) em cada nó; reaproveitável em qualquer host Debian/Ubuntu.
+# Só roda se beszel_hub_url estiver definido (ver group_vars/all.yml).
+- name: Beszel agent
+  hosts: k8s
+  gather_facts: true
+
+  handlers:
+    - name: Reiniciar beszel-agent
+      ansible.builtin.systemd_service:
+        name: beszel-agent
+        state: restarted
+        daemon_reload: true
+
+  tasks:
+    - name: Pular se o Hub não estiver configurado
+      ansible.builtin.meta: end_play
+      when: beszel_hub_url is not defined
+
+    # O DNS dos nós é o da GCP (169.254.169.254), que não resolve *.ts.net
+    # (mesmo problema do incidente 001 do beszel-infra). O nome do Hub vai para o
+    # /etc/hosts com o IP da tailnet resolvido no PC de administração.
+    - name: Resolver o IP do Hub na tailnet (no PC)
+      ansible.builtin.set_fact:
+        beszel_hub_host: "{{ beszel_hub_url | urlsplit('hostname') }}"
+        beszel_hub_ip: "{{ lookup('ansible.builtin.pipe', 'tailscale ip -4 ' ~ (beszel_hub_url | urlsplit('hostname'))) }}"
+      run_once: true
+      delegate_to: localhost
+      become: false
+
+    - name: Nome do Hub no /etc/hosts
+      ansible.builtin.lineinfile:
+        path: /etc/hosts
+        regexp: "\\s{{ beszel_hub_host | regex_escape }}$"
+        line: "{{ beszel_hub_ip }} {{ beszel_hub_host }}"
+
+    - name: Usuário de sistema do agent
+      ansible.builtin.user:
+        name: beszel
+        system: true
+        shell: /usr/sbin/nologin
+        create_home: false
+
+    - name: Baixar e extrair o agent {{ beszel_versao }}
+      ansible.builtin.unarchive:
+        src: "https://github.com/henrygd/beszel/releases/download/v{{ beszel_versao }}/beszel-agent_linux_amd64.tar.gz"
+        dest: /usr/local/bin
+        remote_src: true
+        include: [beszel-agent]
+        owner: root
+        group: root
+        mode: "0755"
+      notify: Reiniciar beszel-agent
+
+    - name: Credenciais do agent (só root e o serviço leem)
+      ansible.builtin.copy:
+        dest: /etc/beszel-agent.env
+        content: |
+          HUB_URL={{ beszel_hub_url }}
+          KEY={{ beszel_key }}
+          TOKEN={{ beszel_token }}
+          DISABLE_SSH=true
+        owner: root
+        group: root
+        mode: "0600"
+      no_log: true
+      notify: Reiniciar beszel-agent
+
+    - name: Serviço systemd do agent
+      ansible.builtin.copy:
+        dest: /etc/systemd/system/beszel-agent.service
+        content: |
+          [Unit]
+          Description=Beszel Agent
+          Wants=network-online.target tailscaled.service
+          After=network-online.target tailscaled.service
+
+          [Service]
+          EnvironmentFile=/etc/beszel-agent.env
+          ExecStart=/usr/local/bin/beszel-agent
+          User=beszel
+          Restart=on-failure
+          RestartSec=10
+          StateDirectory=beszel-agent
+          Environment=DATA_DIR=/var/lib/beszel-agent
+
+          [Install]
+          WantedBy=multi-user.target
+        owner: root
+        group: root
+        mode: "0644"
+      notify: Reiniciar beszel-agent
+
+    - name: Agent habilitado e rodando
+      ansible.builtin.systemd_service:
+        name: beszel-agent
+        enabled: true
+        state: started
+        daemon_reload: true

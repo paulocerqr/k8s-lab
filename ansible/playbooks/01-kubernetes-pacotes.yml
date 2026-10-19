@@ -1,0 +1,50 @@
+# Passos 1.5 e 1.6 do docs/03-kubeadm.md: kubeadm, kubelet e kubectl em versão fixa.
+- name: Pacotes do Kubernetes
+  hosts: k8s
+  gather_facts: false
+
+  vars:
+    pacotes_k8s: [kubelet, kubeadm, kubectl]
+
+  tasks:
+    - name: Repositório do Kubernetes (série {{ kubernetes_serie }})
+      ansible.builtin.deb822_repository:
+        name: kubernetes
+        types: deb
+        uris: "https://pkgs.k8s.io/core:/stable:/v{{ kubernetes_serie }}/deb/"
+        suites: /
+        signed_by: "https://pkgs.k8s.io/core:/stable:/v{{ kubernetes_serie }}/deb/Release.key"
+
+    # A imagem da GCP traz o repositório do Google Cloud SDK, que tem um pacote também
+    # chamado "kubectl" (com epoch 1:, que venceria a versão do pkgs.k8s.io).
+    # Prioridade > 1000 faz o apt preferir o pkgs.k8s.io mesmo que precise voltar de versão.
+    - name: Prioridade do pkgs.k8s.io para os pacotes do Kubernetes
+      ansible.builtin.copy:
+        dest: /etc/apt/preferences.d/kubernetes
+        content: |
+          Package: kubectl kubeadm kubelet cri-tools kubernetes-cni
+          Pin: origin pkgs.k8s.io
+          Pin-Priority: 1001
+        owner: root
+        group: root
+        mode: "0644"
+
+    - name: Instalar kubeadm, kubelet e kubectl {{ kubernetes_pacote }}
+      ansible.builtin.apt:
+        name: "{{ pacotes_k8s | map('regex_replace', '$', '=' ~ kubernetes_pacote) | list }}"
+        state: present
+        update_cache: true
+        allow_downgrade: true
+        allow_change_held_packages: true   # os pacotes ficam travados entre execuções
+
+    # Atualizar o Kubernetes é um procedimento à parte (kubeadm upgrade), nunca um apt upgrade
+    - name: Travar a versão (kubelet, kubeadm, kubectl, containerd.io)
+      ansible.builtin.dpkg_selections:
+        name: "{{ item }}"
+        selection: hold
+      loop: "{{ pacotes_k8s + ['containerd.io'] }}"
+
+    - name: kubelet habilitado (só inicia de fato depois do init/join)
+      ansible.builtin.systemd_service:
+        name: kubelet
+        enabled: true

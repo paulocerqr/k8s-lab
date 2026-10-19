@@ -1,0 +1,30 @@
+# Passo 5 do docs/03-kubeadm.md: kubeadm join dos workers.
+- name: Workers (kubeadm join)
+  hosts: workers
+  gather_facts: false
+
+  tasks:
+    - name: Verificar se o nó já está no cluster
+      ansible.builtin.stat:
+        path: /etc/kubernetes/kubelet.conf
+      register: kubelet_conf
+
+    # O token do init vale 24 h; geramos um novo a cada execução que precise de join.
+    # no_log: o comando de join é uma credencial e não pode aparecer na saída.
+    - name: Gerar o comando de join no control plane
+      ansible.builtin.command: kubeadm token create --ttl 30m --print-join-command
+      delegate_to: "{{ groups['control_plane'][0] }}"
+      run_once: true
+      register: comando_join
+      changed_when: true
+      no_log: true
+      when: >-
+        groups['workers'] | map('extract', hostvars, ['kubelet_conf', 'stat', 'exists'])
+        | reject | list | length > 0
+
+    - name: kubeadm join
+      ansible.builtin.command: "{{ comando_join.stdout }}"
+      args:
+        creates: /etc/kubernetes/kubelet.conf
+      no_log: true
+      when: not kubelet_conf.stat.exists

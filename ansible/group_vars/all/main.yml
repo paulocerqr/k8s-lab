@@ -1,0 +1,21 @@
+# Versões fixas: mudar aqui é a forma controlada de atualizar.
+
+kubernetes_serie: "1.37"           # repositório pkgs.k8s.io/core:/stable:/v1.37
+kubernetes_versao: "1.37.1"        # kubeadm/kubelet/kubectl e o control plane
+kubernetes_pacote: "1.37.1-1.1"    # versão do pacote .deb
+
+cilium_versao: "1.20.3"            # chart Helm cilium/cilium
+
+# Redes do cluster (não podem colidir com a VPC 10.10.0.0/24)
+pod_subnet: "10.244.0.0/16"
+service_subnet: "10.96.0.0/12"
+
+# Kubeconfig gravado no PC de administração pelo 04-kubeconfig-local.yml
+kubeconfig_local: "{{ lookup('env', 'HOME') }}/.kube/k8s-lab.conf"
+
+# Beszel agent (06-beszel-agent.yml): só roda se beszel_hub_url estiver definido.
+# Defina os valores em group_vars/all/vault.yml (cifrado com ansible-vault):
+#   beszel_hub_url: "https://<hub>.<tailnet>.ts.net"
+#   beszel_key: "ssh-ed25519 AAAA..."     # chave pública do Hub (não é segredo)
+#   beszel_token: "..."                   # token de registro (segredo)
+beszel_versao: "0.21.0"

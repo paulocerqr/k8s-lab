@@ -1,0 +1,114 @@
+# Passo 1 do docs/03-kubeadm.md: kernel e container runtime, iguais nos 3 nós.
+- name: Base dos nós (kernel + containerd)
+  hosts: k8s
+  gather_facts: true
+
+  handlers:
+    - name: Reiniciar containerd
+      ansible.builtin.systemd_service:
+        name: containerd
+        state: restarted
+
+  tasks:
+    # 1.1 ------------------------------------------------------------------
+    - name: Ler a configuração de swap
+      ansible.builtin.command: cat /proc/swaps
+      register: swaps
+      changed_when: false
+      check_mode: false
+
+    - name: Garantir que não há swap (o kubelet não aceita, por padrão)
+      ansible.builtin.assert:
+        that: swaps.stdout_lines | length == 1
+        fail_msg: "Há swap ativo em {{ inventory_hostname }}; desative antes de continuar."
+        quiet: true
+
+    # os facts de montagens do Ansible omitem sistemas de arquivos virtuais (cgroup2)
+    - name: Ler o tipo do /sys/fs/cgroup
+      ansible.builtin.command: stat -fc %T /sys/fs/cgroup
+      register: cgroup_fs
+      changed_when: false
+      check_mode: false
+
+    - name: Garantir cgroup v2
+      ansible.builtin.assert:
+        that: cgroup_fs.stdout == 'cgroup2fs'
+        fail_msg: "/sys/fs/cgroup não é cgroup v2 em {{ inventory_hostname }} ({{ cgroup_fs.stdout }})."
+        quiet: true
+
+    # 1.2 ------------------------------------------------------------------
+    - name: Módulos do kernel para imagens (overlay) e rede de pods (br_netfilter)
+      community.general.modprobe:
+        name: "{{ item }}"
+        state: present
+        persistent: present        # grava em /etc/modules-load.d/ (carrega a cada boot)
+      loop: [overlay, br_netfilter]
+
+    # 1.3 ------------------------------------------------------------------
+    - name: Parâmetros de rede do kernel
+      ansible.posix.sysctl:
+        name: "{{ item }}"
+        value: "1"
+        sysctl_file: /etc/sysctl.d/k8s.conf
+        reload: true
+      loop:
+        - net.bridge.bridge-nf-call-iptables
+        - net.bridge.bridge-nf-call-ip6tables
+        - net.ipv4.ip_forward
+
+    # 1.4 ------------------------------------------------------------------
+    - name: Pré-requisitos do apt
+      ansible.builtin.apt:
+        name: [ca-certificates, curl, gpg]
+        state: present
+        update_cache: true
+        cache_valid_time: 3600
+
+    # Arquivos .list da instalação manual: conflitam com os repositórios deb822 abaixo
+    # (mesmo repositório com chaves diferentes faz o apt falhar)
+    - name: Remover repositórios no formato antigo
+      ansible.builtin.file:
+        path: "/etc/apt/sources.list.d/{{ item }}"
+        state: absent
+      loop: [docker.list, kubernetes.list]
+
+    # O containerd 1.7 do Debian não tem suporte no Kubernetes 1.37: usamos o 2.x do Docker
+    - name: Repositório do Docker (containerd.io 2.x)
+      ansible.builtin.deb822_repository:
+        name: docker
+        types: deb
+        uris: https://download.docker.com/linux/debian
+        suites: "{{ ansible_facts.distribution_release }}"
+        components: stable
+        architectures: amd64
+        signed_by: https://download.docker.com/linux/debian/gpg
+
+    - name: Instalar o containerd
+      ansible.builtin.apt:
+        name: containerd.io
+        state: present
+        update_cache: true
+
+    # O containerd.io vem com o plugin CRI desligado; geramos a configuração padrão
+    # completa e ligamos o SystemdCgroup (mesmo gerenciador de cgroups do kubelet).
+    # Como o conteúdo é comparado, rodar de novo não reinicia o containerd à toa.
+    - name: Gerar a configuração padrão do containerd
+      ansible.builtin.command: containerd config default
+      register: containerd_padrao
+      changed_when: false
+      check_mode: false
+
+    - name: Gravar /etc/containerd/config.toml com SystemdCgroup = true
+      ansible.builtin.copy:
+        dest: /etc/containerd/config.toml
+        content: "{{ containerd_padrao.stdout | replace('SystemdCgroup = false', 'SystemdCgroup = true') }}\n"
+        owner: root
+        group: root
+        mode: "0644"
+      notify: Reiniciar containerd
+
+    - name: containerd habilitado e rodando
+      ansible.builtin.systemd_service:
+        name: containerd
+        enabled: true
+        state: started

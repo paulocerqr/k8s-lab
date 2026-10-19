@@ -1,0 +1,31 @@
+$ cd ansible && ansible-playbook site.yml
+PLAY RECAP *********************************************************************
+cp-1                       : ok=32   changed=0    unreachable=0    failed=0    skipped=1    rescued=0    ignored=0
+localhost                  : ok=3    changed=0    unreachable=0    failed=0    skipped=1    rescued=0    ignored=0
+worker-1                   : ok=21   changed=0    unreachable=0    failed=0    skipped=2    rescued=0    ignored=0
+worker-2                   : ok=21   changed=0    unreachable=0    failed=0    skipped=1    rescued=0    ignored=0
+
+
+TASKS RECAP ********************************************************************
+segunda 19 outubro 2026  13:38:59 -0300 (0:00:00.007)       0:01:07.151 *******
+===============================================================================
+Travar a versão (kubelet, kubeadm, kubectl, containerd.io) -------------- 5.06s
+Gathering Facts --------------------------------------------------------- 4.96s
+Gravar /etc/containerd/config.toml com SystemdCgroup = true ------------- 3.56s
+Gathering Facts --------------------------------------------------------- 3.54s
+Parâmetros de rede do kernel -------------------------------------------- 3.32s
+Prioridade do pkgs.k8s.io para os pacotes do Kubernetes ----------------- 3.31s
+Gravar a configuração do kubeadm ---------------------------------------- 3.14s
+Instalar o containerd --------------------------------------------------- 2.72s
+Instalar kubeadm, kubelet e kubectl 1.37.1-1.1 -------------------------- 2.58s
+Remover repositórios no formato antigo ---------------------------------- 2.42s
+Módulos do kernel para imagens (overlay) e rede de pods (br_netfilter) --- 2.29s
+kubectl para o usuário lab no próprio nó -------------------------------- 2.24s
+Pré-requisitos do apt --------------------------------------------------- 2.08s
+Gathering Facts --------------------------------------------------------- 2.01s
+containerd habilitado e rodando ----------------------------------------- 1.82s
+Verificar se o nó já está no cluster ------------------------------------ 1.70s
+Repositório do Kubernetes (série 1.37) ---------------------------------- 1.63s
+Gerar a configuração padrão do containerd ------------------------------- 1.58s
+kubelet habilitado (só inicia de fato depois do init/join) -------------- 1.56s
+Ler a versão instalada do Cilium ---------------------------------------- 1.53s

@@ -1,0 +1,5 @@
+$ gcloud compute firewall-rules list --filter=network=lab
+NAME           ORIGEM           PERMITE
+lab-iap-ssh    35.235.240.0/20  tcp:22
+lab-interno    10.10.0.0/24     all
+lab-tailscale  0.0.0.0/0        udp:41641

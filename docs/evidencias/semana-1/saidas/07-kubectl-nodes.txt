@@ -1,0 +1,5 @@
+$ kubectl get nodes -o wide
+NAME       STATUS   ROLES           AGE   VERSION   INTERNAL-IP   EXTERNAL-IP   OS-IMAGE                       KERNEL-VERSION                       CONTAINER-RUNTIME
+cp-1       Ready    control-plane   17m   v1.37.1   10.10.0.3     <none>        Debian GNU/Linux 13 (trixie)   6.12.111+deb13-cloud-amd64 (amd64)   containerd://2.4.2
+worker-1   Ready    <none>          17m   v1.37.1   10.10.0.2     <none>        Debian GNU/Linux 13 (trixie)   6.12.111+deb13-cloud-amd64 (amd64)   containerd://2.4.2
+worker-2   Ready    <none>          17m   v1.37.1   10.10.0.4     <none>        Debian GNU/Linux 13 (trixie)   6.12.111+deb13-cloud-amd64 (amd64)   containerd://2.4.2

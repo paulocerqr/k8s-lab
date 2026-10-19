@@ -1,0 +1,272 @@
+$ cd ansible && ansible-playbook site.yml
+
+PLAY [Base dos nós (kernel + containerd)] **************************************
+
+TASK [Gathering Facts] *********************************************************
+segunda 19 outubro 2026  13:37:52 -0300 (0:00:00.009)       0:00:00.009 *******
+ok: [cp-1]
+ok: [worker-2]
+ok: [worker-1]
+
+TASK [Ler a configuração de swap] **********************************************
+segunda 19 outubro 2026  13:37:57 -0300 (0:00:04.960)       0:00:04.969 *******
+ok: [worker-2]
+ok: [cp-1]
+ok: [worker-1]
+
+TASK [Garantir que não há swap (o kubelet não aceita, por padrão)] *************
+segunda 19 outubro 2026  13:37:58 -0300 (0:00:01.482)       0:00:06.452 *******
+ok: [cp-1]
+ok: [worker-1]
+ok: [worker-2]
+
+TASK [Ler o tipo do /sys/fs/cgroup] ********************************************
+segunda 19 outubro 2026  13:37:58 -0300 (0:00:00.041)       0:00:06.493 *******
+ok: [cp-1]
+ok: [worker-2]
+ok: [worker-1]
+
+TASK [Garantir cgroup v2] ******************************************************
+segunda 19 outubro 2026  13:38:00 -0300 (0:00:01.283)       0:00:07.776 *******
+ok: [cp-1]
+ok: [worker-1]
+ok: [worker-2]
+
+TASK [Módulos do kernel para imagens (overlay) e rede de pods (br_netfilter)] ***
+segunda 19 outubro 2026  13:38:00 -0300 (0:00:00.031)       0:00:07.808 *******
+ok: [cp-1] => (item=overlay)
+ok: [worker-2] => (item=overlay)
+ok: [worker-1] => (item=overlay)
+ok: [cp-1] => (item=br_netfilter)
+ok: [worker-2] => (item=br_netfilter)
+ok: [worker-1] => (item=br_netfilter)
+
+TASK [Parâmetros de rede do kernel] ********************************************
+segunda 19 outubro 2026  13:38:02 -0300 (0:00:02.288)       0:00:10.096 *******
+ok: [cp-1] => (item=net.bridge.bridge-nf-call-iptables)
+ok: [worker-2] => (item=net.bridge.bridge-nf-call-iptables)
+ok: [worker-1] => (item=net.bridge.bridge-nf-call-iptables)
+ok: [cp-1] => (item=net.bridge.bridge-nf-call-ip6tables)
+ok: [worker-2] => (item=net.bridge.bridge-nf-call-ip6tables)
+ok: [worker-1] => (item=net.bridge.bridge-nf-call-ip6tables)
+ok: [cp-1] => (item=net.ipv4.ip_forward)
+ok: [worker-2] => (item=net.ipv4.ip_forward)
+ok: [worker-1] => (item=net.ipv4.ip_forward)
+
+TASK [Pré-requisitos do apt] ***************************************************
+segunda 19 outubro 2026  13:38:05 -0300 (0:00:03.321)       0:00:13.418 *******
+ok: [cp-1]
+ok: [worker-2]
+ok: [worker-1]
+
+TASK [Remover repositórios no formato antigo] **********************************
+segunda 19 outubro 2026  13:38:07 -0300 (0:00:02.080)       0:00:15.498 *******
+ok: [cp-1] => (item=docker.list)
+ok: [worker-2] => (item=docker.list)
+ok: [worker-1] => (item=docker.list)
+ok: [cp-1] => (item=kubernetes.list)
+ok: [worker-2] => (item=kubernetes.list)
+ok: [worker-1] => (item=kubernetes.list)
+
+TASK [Repositório do Docker (containerd.io 2.x)] *******************************
+segunda 19 outubro 2026  13:38:10 -0300 (0:00:02.421)       0:00:17.919 *******
+ok: [cp-1]
+ok: [worker-2]
+ok: [worker-1]
+
+TASK [Instalar o containerd] ***************************************************
+segunda 19 outubro 2026  13:38:11 -0300 (0:00:01.374)       0:00:19.293 *******
+ok: [cp-1]
+ok: [worker-2]
+ok: [worker-1]
+
+TASK [Gerar a configuração padrão do containerd] *******************************
+segunda 19 outubro 2026  13:38:14 -0300 (0:00:02.721)       0:00:22.015 *******
+ok: [cp-1]
+ok: [worker-2]
+ok: [worker-1]
+
+TASK [Gravar /etc/containerd/config.toml com SystemdCgroup = true] *************
+segunda 19 outubro 2026  13:38:16 -0300 (0:00:01.580)       0:00:23.595 *******
+ok: [cp-1]
+ok: [worker-2]
+ok: [worker-1]
+
+TASK [containerd habilitado e rodando] *****************************************
+segunda 19 outubro 2026  13:38:19 -0300 (0:00:03.563)       0:00:27.159 *******
+ok: [cp-1]
+ok: [worker-2]
+ok: [worker-1]
+
+PLAY [Pacotes do Kubernetes] ***************************************************
+
+TASK [Repositório do Kubernetes (série 1.37)] **********************************
+segunda 19 outubro 2026  13:38:21 -0300 (0:00:01.816)       0:00:28.975 *******
+ok: [cp-1]
+ok: [worker-2]
+ok: [worker-1]
+
+TASK [Prioridade do pkgs.k8s.io para os pacotes do Kubernetes] *****************
+segunda 19 outubro 2026  13:38:23 -0300 (0:00:01.626)       0:00:30.602 *******
+ok: [cp-1]
+ok: [worker-2]
+ok: [worker-1]
+
+TASK [Instalar kubeadm, kubelet e kubectl 1.37.1-1.1] **************************
+segunda 19 outubro 2026  13:38:26 -0300 (0:00:03.305)       0:00:33.907 *******
+ok: [cp-1]
+ok: [worker-2]
+ok: [worker-1]
+
+TASK [Travar a versão (kubelet, kubeadm, kubectl, containerd.io)] **************
+segunda 19 outubro 2026  13:38:28 -0300 (0:00:02.576)       0:00:36.484 *******
+ok: [cp-1] => (item=kubelet)
+ok: [worker-2] => (item=kubelet)
+ok: [worker-1] => (item=kubelet)
+ok: [cp-1] => (item=kubeadm)
+ok: [worker-2] => (item=kubeadm)
+ok: [worker-1] => (item=kubeadm)
+ok: [cp-1] => (item=kubectl)
+ok: [worker-2] => (item=kubectl)
+ok: [worker-1] => (item=kubectl)
+ok: [cp-1] => (item=containerd.io)
+ok: [worker-2] => (item=containerd.io)
+ok: [worker-1] => (item=containerd.io)
+
+TASK [kubelet habilitado (só inicia de fato depois do init/join)] **************
+segunda 19 outubro 2026  13:38:33 -0300 (0:00:05.058)       0:00:41.542 *******
+ok: [worker-1]
+ok: [cp-1]
+ok: [worker-2]
+
+PLAY [Control plane (kubeadm init)] ********************************************
+
+TASK [Gathering Facts] *********************************************************
+segunda 19 outubro 2026  13:38:35 -0300 (0:00:01.563)       0:00:43.105 *******
+ok: [cp-1]
+
+TASK [Ler a identidade do nó na tailnet] ***************************************
+segunda 19 outubro 2026  13:38:37 -0300 (0:00:02.006)       0:00:45.112 *******
+ok: [cp-1]
+
+TASK [Calcular endereços do API server] ****************************************
+segunda 19 outubro 2026  13:38:38 -0300 (0:00:01.321)       0:00:46.433 *******
+ok: [cp-1]
+
+TASK [Gravar a configuração do kubeadm] ****************************************
+segunda 19 outubro 2026  13:38:38 -0300 (0:00:00.042)       0:00:46.476 *******
+ok: [cp-1]
+
+TASK [Baixar as imagens do control plane] **************************************
+segunda 19 outubro 2026  13:38:42 -0300 (0:00:03.139)       0:00:49.615 *******
+ok: [cp-1]
+
+TASK [kubeadm init] ************************************************************
+segunda 19 outubro 2026  13:38:43 -0300 (0:00:01.007)       0:00:50.623 *******
+ok: [cp-1]
+
+TASK [Mostrar o fim da saída do init] ******************************************
+segunda 19 outubro 2026  13:38:44 -0300 (0:00:01.012)       0:00:51.636 *******
+skipping: [cp-1]
+
+TASK [Diretório .kube com o dono certo] ****************************************
+segunda 19 outubro 2026  13:38:44 -0300 (0:00:00.017)       0:00:51.653 *******
+ok: [cp-1]
+
+TASK [kubectl para o usuário lab no próprio nó] ********************************
+segunda 19 outubro 2026  13:38:45 -0300 (0:00:01.045)       0:00:52.698 *******
+ok: [cp-1]
+
+PLAY [Workers (kubeadm join)] **************************************************
+
+TASK [Verificar se o nó já está no cluster] ************************************
+segunda 19 outubro 2026  13:38:47 -0300 (0:00:02.235)       0:00:54.934 *******
+ok: [worker-2]
+ok: [worker-1]
+
+TASK [Gerar o comando de join no control plane] ********************************
+segunda 19 outubro 2026  13:38:49 -0300 (0:00:01.701)       0:00:56.636 *******
+skipping: [worker-1]
+
+TASK [kubeadm join] ************************************************************
+segunda 19 outubro 2026  13:38:49 -0300 (0:00:00.035)       0:00:56.671 *******
+skipping: [worker-1]
+skipping: [worker-2]
+
+PLAY [Kubeconfig no PC de administração] ***************************************
+
+TASK [Ler a identidade do nó na tailnet] ***************************************
+segunda 19 outubro 2026  13:38:49 -0300 (0:00:00.023)       0:00:56.695 *******
+ok: [cp-1]
+
+TASK [Copiar o admin.conf do control plane] ************************************
+segunda 19 outubro 2026  13:38:50 -0300 (0:00:01.473)       0:00:58.169 *******
+ok: [cp-1]
+
+TASK [Diretório ~/.kube no PC] *************************************************
+segunda 19 outubro 2026  13:38:51 -0300 (0:00:01.120)       0:00:59.289 *******
+ok: [cp-1 -> localhost]
+
+TASK [Gravar /home/cerqr/.kube/k8s-lab.conf (credencial de administrador, permissão 600)] ***
+segunda 19 outubro 2026  13:38:51 -0300 (0:00:00.257)       0:00:59.547 *******
+ok: [cp-1 -> localhost]
+
+PLAY [Cilium (CNI)] ************************************************************
+
+TASK [Repositório de charts do Cilium] *****************************************
+segunda 19 outubro 2026  13:38:52 -0300 (0:00:00.483)       0:01:00.030 *******
+ok: [localhost]
+
+TASK [Ler a versão instalada do Cilium] ****************************************
+segunda 19 outubro 2026  13:38:52 -0300 (0:00:00.496)       0:01:00.527 *******
+ok: [localhost]
+
+TASK [Instalar/atualizar o Cilium 1.20.3] **************************************
+segunda 19 outubro 2026  13:38:54 -0300 (0:00:01.527)       0:01:02.054 *******
+skipping: [localhost]
+
+TASK [Esperar todos os nós ficarem Ready] **************************************
+segunda 19 outubro 2026  13:38:54 -0300 (0:00:00.028)       0:01:02.082 *******
+ok: [localhost]
+
+PLAY [Beszel agent] ************************************************************
+
+TASK [Gathering Facts] *********************************************************
+segunda 19 outubro 2026  13:38:56 -0300 (0:00:01.523)       0:01:03.606 *******
+ok: [cp-1]
+ok: [worker-1]
+ok: [worker-2]
+
+TASK [Pular se o Hub não estiver configurado] **********************************
+segunda 19 outubro 2026  13:38:59 -0300 (0:00:03.537)       0:01:07.143 *******
+
+PLAY RECAP *********************************************************************
+cp-1                       : ok=32   changed=0    unreachable=0    failed=0    skipped=1    rescued=0    ignored=0
+localhost                  : ok=3    changed=0    unreachable=0    failed=0    skipped=1    rescued=0    ignored=0
+worker-1                   : ok=21   changed=0    unreachable=0    failed=0    skipped=2    rescued=0    ignored=0
+worker-2                   : ok=21   changed=0    unreachable=0    failed=0    skipped=1    rescued=0    ignored=0
+
+
+TASKS RECAP ********************************************************************
+segunda 19 outubro 2026  13:38:59 -0300 (0:00:00.007)       0:01:07.151 *******
+===============================================================================
+Travar a versão (kubelet, kubeadm, kubectl, containerd.io) -------------- 5.06s
+Gathering Facts --------------------------------------------------------- 4.96s
+Gravar /etc/containerd/config.toml com SystemdCgroup = true ------------- 3.56s
+Gathering Facts --------------------------------------------------------- 3.54s
+Parâmetros de rede do kernel -------------------------------------------- 3.32s
+Prioridade do pkgs.k8s.io para os pacotes do Kubernetes ----------------- 3.31s
+Gravar a configuração do kubeadm ---------------------------------------- 3.14s
+Instalar o containerd --------------------------------------------------- 2.72s
+Instalar kubeadm, kubelet e kubectl 1.37.1-1.1 -------------------------- 2.58s
+Remover repositórios no formato antigo ---------------------------------- 2.42s
+Módulos do kernel para imagens (overlay) e rede de pods (br_netfilter) --- 2.29s
+kubectl para o usuário lab no próprio nó -------------------------------- 2.24s
+Pré-requisitos do apt --------------------------------------------------- 2.08s
+Gathering Facts --------------------------------------------------------- 2.01s
+containerd habilitado e rodando ----------------------------------------- 1.82s
+Verificar se o nó já está no cluster ------------------------------------ 1.70s
+Repositório do Kubernetes (série 1.37) ---------------------------------- 1.63s
+Gerar a configuração padrão do containerd ------------------------------- 1.58s
+kubelet habilitado (só inicia de fato depois do init/join) -------------- 1.56s
+Ler a versão instalada do Cilium ---------------------------------------- 1.53s

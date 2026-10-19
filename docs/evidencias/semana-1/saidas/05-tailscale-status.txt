@@ -1,0 +1,4 @@
+$ tailscale status | grep -E 'cp-1|worker-'
+100.68.x.x    cp-1                              tagged-devices  linux  active; direct 136.113.162.17:41641, tx 87756 rx 340940
+100.83.x.x   worker-1                          tagged-devices  linux  idle, tx 6260 rx 5388
+100.105.x.x  worker-2                          tagged-devices  linux  idle, tx 6260 rx 5676

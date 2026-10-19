@@ -1,0 +1,2 @@
+$ kubectl -n kube-system exec ds/cilium -- cilium-dbg status --brief
+OK

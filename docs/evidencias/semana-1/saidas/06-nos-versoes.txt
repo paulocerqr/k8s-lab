@@ -1,0 +1,4 @@
+$ for n in cp-1 worker-1 worker-2; do ssh lab@$n 'SO, kernel, CPU, RAM e versões'; done
+cp-1      Debian GNU/Linux 13 (trixie) | kernel 6.12.111+deb13-cloud-amd64 | 4 vCPU | 15996 MB | containerd v2.4.2 | kubeadm v1.37.1 | kubelet v1.37.1
+worker-1  Debian GNU/Linux 13 (trixie) | kernel 6.12.111+deb13-cloud-amd64 | 2 vCPU | 7945 MB | containerd v2.4.2 | kubeadm v1.37.1 | kubelet v1.37.1
+worker-2  Debian GNU/Linux 13 (trixie) | kernel 6.12.111+deb13-cloud-amd64 | 2 vCPU | 7945 MB | containerd v2.4.2 | kubeadm v1.37.1 | kubelet v1.37.1

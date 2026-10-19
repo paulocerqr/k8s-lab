@@ -1,0 +1,12 @@
+$ terraform -chdir=terraform state list
+google_compute_firewall.iap_ssh
+google_compute_firewall.interno
+google_compute_firewall.tailscale
+google_compute_instance.no["cp-1"]
+google_compute_instance.no["worker-1"]
+google_compute_instance.no["worker-2"]
+google_compute_network.lab
+google_compute_subnetwork.nos
+google_project_iam_member.nos["roles/logging.logWriter"]
+google_project_iam_member.nos["roles/monitoring.metricWriter"]
+google_service_account.nos

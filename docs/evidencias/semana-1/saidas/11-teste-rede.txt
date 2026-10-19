@@ -1,0 +1,16 @@
+$ kubectl create deployment teste-rede ...; kubectl expose ...; kubectl run cliente ... wget http://teste-rede
+deployment.apps/teste-rede created
+Waiting for deployment "teste-rede" rollout to finish: 0 of 2 updated replicas are available...
+Waiting for deployment "teste-rede" rollout to finish: 1 of 2 updated replicas are available...
+deployment "teste-rede" successfully rolled out
+service/teste-rede exposed
+
+NAME                          READY   STATUS    RESTARTS   AGE   IP             NODE       NOMINATED NODE   READINESS GATES
+teste-rede-6786f4b5b6-bpvfp   1/1     Running   0          3s    10.244.1.129   worker-2   <none>           <none>
+teste-rede-6786f4b5b6-zzwtp   1/1     Running   0          3s    10.244.2.213   worker-1   <none>           <none>
+
+NAME         TYPE        CLUSTER-IP       EXTERNAL-IP   PORT(S)   AGE
+teste-rede   ClusterIP   10.104.255.209   <none>        80/TCP    2s
+
+$ kubectl run cliente --rm -i --image=busybox:1.37 --restart=Never -- wget -qO- http://teste-rede | grep title
+<title>Welcome to nginx!</title>

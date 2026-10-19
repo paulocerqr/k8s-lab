@@ -1,0 +1,7 @@
+$ terraform -chdir=terraform output
+acesso = "ssh lab@<nó>  # Tailscale SSH; emergência: gcloud compute ssh <nó> --tunnel-through-iap"
+nos = {
+  "cp-1" = "10.10.0.3"
+  "worker-1" = "10.10.0.2"
+  "worker-2" = "10.10.0.4"
+}

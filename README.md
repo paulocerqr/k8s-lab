@@ -8,7 +8,11 @@ Cluster Kubernetes autogerenciado (kubeadm) em 3 VMs na Google Cloud, montado do
 |---|---|
 | `terraform apply` (rede, firewall, 3 VMs) | 123 s |
 | Nós na tailnet | 20 s |
-| `ansible-playbook site.yml` | 217 s | Plano completo, decisões e cronograma: [`docs/plano.md`](docs/plano.md).
+| `ansible-playbook site.yml` | 217 s |
+
+![kubectl get nodes](docs/evidencias/semana-1/img/07-kubectl-nodes.png)
+
+Mais evidências (saídas reais de cada etapa): [docs/evidencias/semana-1](docs/evidencias/semana-1/README.md). Plano completo, decisões e cronograma: [`docs/plano.md`](docs/plano.md).
 
 ## Documentação
 
@@ -20,6 +24,7 @@ Cluster Kubernetes autogerenciado (kubeadm) em 3 VMs na Google Cloud, montado do
 | [03 — Cluster com kubeadm](docs/03-kubeadm.md) | Preparação dos nós, `init`, `kubectl` pela tailnet, Cilium, `join`, teste de rede e problemas encontrados |
 | [04 — Ansible](docs/04-ansible.md) | Playbooks, idempotência e o teste de recriação do zero (tempos) |
 | [Incidente 001](docs/incidentes/001-cloud-init-debian-gcp.md) | Nós fora da tailnet: Debian da GCP sem cloud-init |
+| [Evidências — semana 1](docs/evidencias/semana-1/README.md) | Saídas reais dos comandos (com imagens): Terraform, firewall, tailnet, nós, pods, Cilium, teste de rede e Ansible |
 
 ## Arquitetura (resumo)
 

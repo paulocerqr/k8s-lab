@@ -1,0 +1,20 @@
+$ kubectl get pods -A -o wide
+NAMESPACE     NAME                              READY   STATUS    RESTARTS   AGE   IP             NODE       NOMINATED NODE   READINESS GATES
+kube-system   cilium-4nwh7                      1/1     Running   0          16m   10.10.0.4      worker-2   <none>           <none>
+kube-system   cilium-envoy-gv9rw                1/1     Running   0          16m   10.10.0.4      worker-2   <none>           <none>
+kube-system   cilium-envoy-qp7t7                1/1     Running   0          16m   10.10.0.2      worker-1   <none>           <none>
+kube-system   cilium-envoy-xl96d                1/1     Running   0          16m   10.10.0.3      cp-1       <none>           <none>
+kube-system   cilium-gdq52                      1/1     Running   0          16m   10.10.0.3      cp-1       <none>           <none>
+kube-system   cilium-jqvrq                      1/1     Running   0          16m   10.10.0.2      worker-1   <none>           <none>
+kube-system   cilium-operator-fdbf9fc48-gh59f   1/1     Running   0          16m   10.10.0.2      worker-1   <none>           <none>
+kube-system   coredns-559f6c778d-bxrhz          1/1     Running   0          17m   10.244.1.105   worker-2   <none>           <none>
+kube-system   coredns-559f6c778d-d5m2s          1/1     Running   0          17m   10.244.1.159   worker-2   <none>           <none>
+kube-system   etcd-cp-1                         1/1     Running   0          17m   10.10.0.3      cp-1       <none>           <none>
+kube-system   hubble-relay-6cd684f4dc-646fl     1/1     Running   0          16m   10.244.1.135   worker-2   <none>           <none>
+kube-system   hubble-ui-7b5f75765b-pd76n        2/2     Running   0          16m   10.244.1.12    worker-2   <none>           <none>
+kube-system   kube-apiserver-cp-1               1/1     Running   0          17m   10.10.0.3      cp-1       <none>           <none>
+kube-system   kube-controller-manager-cp-1      1/1     Running   0          17m   10.10.0.3      cp-1       <none>           <none>
+kube-system   kube-proxy-5mvgr                  1/1     Running   0          17m   10.10.0.3      cp-1       <none>           <none>
+kube-system   kube-proxy-7r9cv                  1/1     Running   0          17m   10.10.0.4      worker-2   <none>           <none>
+kube-system   kube-proxy-kjndh                  1/1     Running   0          17m   10.10.0.2      worker-1   <none>           <none>
+kube-system   kube-scheduler-cp-1               1/1     Running   0          17m   10.10.0.3      cp-1       <none>           <none>

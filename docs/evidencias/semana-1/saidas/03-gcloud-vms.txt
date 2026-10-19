@@ -1,0 +1,5 @@
+$ gcloud compute instances list
+NAME      ZONE           MACHINE_TYPE   STATUS   INTERNAL_IP
+cp-1      us-central1-a  e2-standard-4  RUNNING  10.10.0.3
+worker-1  us-central1-a  e2-standard-2  RUNNING  10.10.0.2
+worker-2  us-central1-a  e2-standard-2  RUNNING  10.10.0.4

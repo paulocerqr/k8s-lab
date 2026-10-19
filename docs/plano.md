@@ -316,9 +316,9 @@ App   (40%): Job Radar Fase 0     →  Job Radar Fase 1 (MVP) →  calibração 
 - [x] **Manual (K18):** preparar nós, `kubeadm init` com SANs da tailnet, Cilium, `join` dos workers — registrando cada comando em `notas/kubeadm-manual.md`.
 - [x] kubectl do CachyOS via Tailscale.
 - **Marco (20/10):** `kubectl get nodes` → 3 `Ready`. ✅ **cumprido em 19/10** ([03-kubeadm.md](03-kubeadm.md)).
-- [ ] **Automação (21–23/10):** converter as notas em playbooks (`00`–`05`); Beszel agent via `01-beszel-agent.yml`.
-- [ ] **Teste de recriação:** `terraform destroy` → `terraform apply` → `ansible-playbook site.yml` até 3 nós `Ready` **sem nenhum passo manual**; cronometrar.
-- **Marco (23/10):** cluster reproduzível do zero; tempo de recriação registrado no README.
+- [x] **Automação:** notas convertidas em playbooks (`00`–`06`; Beszel opcional no `06`). Ver [04-ansible.md](04-ansible.md).
+- [x] **Teste de recriação:** `destroy` → `apply` → `site.yml`, 3 nós `Ready` sem passo manual: **≈ 6 min** (apply 123 s + tailnet 20 s + Ansible 217 s).
+- **Marco (23/10):** cluster reproduzível do zero; tempo de recriação registrado no README. ✅ **cumprido em 19/10**.
 
 **App (Job Radar — Fase 0 do `PLANO.md`)**
 - [ ] Projeto, ruff/pytest, config, logs JSON, CLI Typer.

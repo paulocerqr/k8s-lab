@@ -2,7 +2,13 @@
 
 Cluster Kubernetes autogerenciado (kubeadm) em 3 VMs na Google Cloud, montado do zero com Terraform e Ansible, acessado só pela tailnet (Tailscale) e publicado sem portas abertas (Cloudflare Tunnel). A aplicação principal é o [Job Radar](https://github.com/paulocerqr/job-radar).
 
-**Status:** semana 1 de 4. Cluster de 3 nós `Ready` (Kubernetes 1.37.1, Cilium 1.20.3), montado à mão; próximo passo: automatizar com Ansible. Plano completo, decisões e cronograma: [`docs/plano.md`](docs/plano.md).
+**Status:** semana 1 de 4 concluída. Cluster de 3 nós `Ready` (Kubernetes 1.37.1, Cilium 1.20.3), **recriável do zero em ≈ 6 min** com Terraform + Ansible, sem passos manuais.
+
+| Do zero ao cluster pronto | Tempo |
+|---|---|
+| `terraform apply` (rede, firewall, 3 VMs) | 123 s |
+| Nós na tailnet | 20 s |
+| `ansible-playbook site.yml` | 217 s | Plano completo, decisões e cronograma: [`docs/plano.md`](docs/plano.md).
 
 ## Documentação
 
@@ -12,6 +18,7 @@ Cluster Kubernetes autogerenciado (kubeadm) em 3 VMs na Google Cloud, montado do
 | [01 — Terraform](docs/01-terraform.md) | Cada arquivo do Terraform, o que cria as VMs e a rede, comandos executados |
 | [02 — Acesso pelo Tailscale](docs/02-acesso-tailscale.md) | Tag, auth key, registro automático dos nós e SSH |
 | [03 — Cluster com kubeadm](docs/03-kubeadm.md) | Preparação dos nós, `init`, `kubectl` pela tailnet, Cilium, `join`, teste de rede e problemas encontrados |
+| [04 — Ansible](docs/04-ansible.md) | Playbooks, idempotência e o teste de recriação do zero (tempos) |
 | [Incidente 001](docs/incidentes/001-cloud-init-debian-gcp.md) | Nós fora da tailnet: Debian da GCP sem cloud-init |
 
 ## Arquitetura (resumo)

@@ -1,0 +1,3 @@
+$ coletas disparadas a partir dos CronJobs (job-radar coletar <fonte>)
+gupy              status=ok coletados=92 novos=91 duplicados=1 no_pool=4
+github_backendbr  status=ok coletados=30 novos=29 duplicados=1 no_pool=14

@@ -1,0 +1,3 @@
+$ curl https://jobradar-lab.utileasy.com.br/{healthz,readyz}
+{"status":"ok"}  (HTTP 200)
+{"status":"ok","banco":"ok"}  (HTTP 200)

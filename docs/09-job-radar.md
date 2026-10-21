@@ -89,3 +89,5 @@ kubectl -n job-radar create job --from=cronjob/coletar-gupy coletar-gupy-manual
 ```
 
 Primeira coleta (21/10/2026): Gupy 92 vagas (4 no pool), GitHub 30 vagas (14 no pool).
+
+Evidências (coleta, auditoria e notificações): [`evidencias/semana-3`](evidencias/semana-3/README.md).

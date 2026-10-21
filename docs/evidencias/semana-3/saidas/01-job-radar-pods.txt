@@ -1,0 +1,12 @@
+$ kubectl -n job-radar get pods,cronjobs -o wide
+api-68cd54bb98-kfvdw         1/1  Running    worker-2
+api-68cd54bb98-rqh7h         1/1  Running    worker-1
+coletar-github-manual-px96l  0/1  Completed  worker-2
+coletar-gupy-29877000-m7pk9  0/1  Completed  worker-1
+coletar-gupy-manual-74bqm    0/1  Completed  worker-1
+migrar-9bhcg                 0/1  Completed  worker-1
+postgres-0                   1/1  Running    worker-1
+worker-695f55bc-nxtrh        1/1  Running    worker-1
+
+coletar-github 30 8-20/2 * * * tz=America/Sao_Paulo
+coletar-gupy 0 8-20 * * * tz=America/Sao_Paulo

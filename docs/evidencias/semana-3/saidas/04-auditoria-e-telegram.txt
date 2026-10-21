@@ -1,0 +1,17 @@
+$ auditoria no cluster (provider, modelo, duração do lote)
+ provider |       modelo        | vagas | segundos_por_lote 
+----------+---------------------+-------+-------------------
+ groq     | openai/gpt-oss-120b |     6 |               5.6
+(1 row)
+
+$ resultado por vaga
+   status    | score_ia |                        titulo                        | notificada_no_telegram 
+-------------+----------+------------------------------------------------------+------------------------
+ recomendada |       75 | Estágio em Desenvolvimento de Software / Data Mining | 21/10 18:59
+ recomendada |       70 | Estágio em Automação de Testes / Desenvolvimento de  | 21/10 18:59
+ recomendada |       65 | Estágio - Dados e Tecnologia da Informação           | 21/10 18:59
+ descartada  |       45 | Estágio em Governança de TI |Trabalho remoto | Vaga  | 
+ descartada  |       30 | Engenheiro (a) de Software-Github /Micro 1           | 
+ descartada  |       30 | Forward Deployed Engineer, Gen AI, Google Cloud (Eng | 
+(6 rows)
+

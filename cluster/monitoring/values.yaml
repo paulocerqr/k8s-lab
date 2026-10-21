@@ -1,0 +1,84 @@
+# kube-prometheus-stack — chart prometheus-community/kube-prometheus-stack 92.1.0
+# Prometheus (métricas), Alertmanager (alertas), Grafana (painéis), kube-state-metrics
+# (estado dos objetos do Kubernetes) e node-exporter (métricas de cada nó).
+#
+# Tudo no cp-1 (K10): o control plane usa ~2 GB dos 16 GB; os workers ficam para apps.
+# node-exporter é a exceção: roda em todos os nós (é ele que mede cada nó).
+
+# --- onde rodar: cp-1 (tolera o taint de control plane) -----------------------------
+_cp1: &cp1
+  nodeSelector:
+    kubernetes.io/hostname: cp-1
+  tolerations:
+    - key: node-role.kubernetes.io/control-plane
+      operator: Exists
+      effect: NoSchedule
+
+prometheusOperator:
+  <<: *cp1
+  admissionWebhooks:
+    patch:
+      <<: *cp1
+
+prometheus:
+  prometheusSpec:
+    <<: *cp1
+    retention: 7d
+    retentionSize: 8GB                  # abaixo do volume, para nunca encher o disco
+    storageSpec:
+      volumeClaimTemplate:
+        spec:
+          storageClassName: local-path   # disco do cp-1 (K06)
+          accessModes: ["ReadWriteOnce"]
+          resources:
+            requests:
+              storage: 10Gi
+    resources:
+      requests: {cpu: 200m, memory: 1Gi}
+      limits: {memory: 3Gi}
+    # Também coletar ServiceMonitors/PodMonitors de outros charts (Traefik, apps...)
+    serviceMonitorSelectorNilUsesHelmValues: false
+    podMonitorSelectorNilUsesHelmValues: false
+    ruleSelectorNilUsesHelmValues: false
+
+alertmanager:
+  alertmanagerSpec:
+    <<: *cp1
+    resources:
+      requests: {cpu: 10m, memory: 32Mi}
+      limits: {memory: 128Mi}
+
+kube-state-metrics:
+  <<: *cp1
+
+prometheus-node-exporter:
+  tolerations:                          # em todos os nós, inclusive no cp-1
+    - operator: Exists
+
+grafana:
+  <<: *cp1
+  admin:
+    existingSecret: grafana-admin       # SealedSecret: grafana-admin-sealedsecret.yaml
+    userKey: admin-user
+    passwordKey: admin-password
+  # Sem volume: painéis e fontes de dados vêm do chart (provisionados);
+  # preferências feitas na interface se perdem ao recriar o pod.
+  persistence:
+    enabled: false
+  resources:
+    requests: {cpu: 50m, memory: 128Mi}
+    limits: {memory: 512Mi}
+
+# --- componentes do control plane ----------------------------------------------------
+# O kubeadm expõe as métricas do scheduler, do controller-manager e do etcd só em
+# 127.0.0.1; o Prometheus não alcança e dispararia alertas "TargetDown" para sempre.
+# Expor exige mudar os manifests do control plane (evolução registrada no plano).
+kubeControllerManager:
+  enabled: false
+kubeScheduler:
+  enabled: false
+kubeEtcd:
+  enabled: false
+# Não há kube-proxy (o Cilium faz o papel dele: K24)
+kubeProxy:
+  enabled: false

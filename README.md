@@ -26,6 +26,7 @@ Mais evidências (saídas reais de cada etapa): [docs/evidencias/semana-1](docs/
 | [05 — Entrada do cluster](docs/05-entrada.md) | Cilium no lugar do kube-proxy; Traefik pela Gateway API |
 | [06 — Plataforma](docs/06-plataforma.md) | Volumes persistentes (local-path) e segredos cifrados no Git (Sealed Secrets) |
 | [07 — Cloudflare Tunnel](docs/07-cloudflare-tunnel.md) | Publicação em HTTPS sem portas abertas; token como Sealed Secret; rotas |
+| [08 — Observabilidade](docs/08-observabilidade.md) | Prometheus, Alertmanager e Grafana no `cp-1`; o que é coletado |
 | [Incidente 001](docs/incidentes/001-cloud-init-debian-gcp.md) | Nós fora da tailnet: Debian da GCP sem cloud-init |
 | [Incidente 002](docs/incidentes/002-gateway-cilium-backend-mesmo-no.md) | Gateway API do Cilium falha para backends no mesmo nó (bug [cilium#47940](https://github.com/cilium/cilium/issues/47940)) |
 | [Evidências — semana 1](docs/evidencias/semana-1/README.md) | Saídas reais dos comandos (com imagens): Terraform, firewall, tailnet, nós, pods, Cilium, teste de rede e Ansible |

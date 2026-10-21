@@ -7,6 +7,7 @@ kubernetes_pacote: "1.37.1-1.1"    # versão do pacote .deb
 cilium_versao: "1.20.3"            # chart Helm cilium/cilium
 gateway_api_versao: "v1.6.3"       # CRDs da Gateway API (06-traefik.yml)
 traefik_chart_versao: "42.1.0"     # chart traefik/traefik (Traefik v3.7.15)
+kps_chart_versao: "92.1.0"         # chart prometheus-community/kube-prometheus-stack
 sealed_secrets_versao: "v0.40.0"   # controller.yaml da release (bitnami-labs/sealed-secrets)
 local_path_versao: "v0.0.37"       # local-path-storage.yaml da release (rancher/local-path-provisioner)
 

@@ -1,0 +1,20 @@
+$ kubectl -n monitoring get pods -o wide
+alertmanager-kps-kube-prometheus-stack-alertmanager-0  Running  cp-1
+kps-grafana-54b7cdd5dd-xwrb4                           Running  cp-1
+kps-kube-prometheus-stack-operator-7d7df6f9b-t9brf     Running  cp-1
+kps-kube-state-metrics-55fcf767cc-jjkhm                Running  cp-1
+kps-prometheus-node-exporter-5vmz9                     Running  cp-1
+kps-prometheus-node-exporter-c6z8d                     Running  worker-1
+kps-prometheus-node-exporter-mm76x                     Running  worker-2
+prometheus-kps-kube-prometheus-stack-prometheus-0      Running  cp-1
+
+$ alvos ativos do Prometheus (job, saúde, quantidade)
+apiserver                                  up    1
+coredns                                    up    2
+kps-grafana                                up    1
+kps-kube-prometheus-stack-alertmanager     up    2
+kps-kube-prometheus-stack-operator         up    1
+kps-kube-prometheus-stack-prometheus       up    2
+kube-state-metrics                         up    1
+kubelet                                    up    9
+node-exporter                              up    3

@@ -1,0 +1,64 @@
+# docs/08-observabilidade.md: kube-prometheus-stack (Prometheus, Alertmanager, Grafana),
+# executado no PC. Pré-requisitos: 08-plataforma (local-path e Sealed Secrets).
+- name: Monitoramento (kube-prometheus-stack)
+  hosts: localhost
+  connection: local
+  gather_facts: false
+  become: false
+
+  environment:
+    KUBECONFIG: "{{ kubeconfig_local }}"
+
+  vars:
+    pasta: "{{ playbook_dir }}/../../cluster/monitoring"
+
+  tasks:
+    - name: Namespace
+      ansible.builtin.shell: kubectl create namespace monitoring --dry-run=client -o yaml | kubectl apply -f -
+      register: ns
+      changed_when: "'unchanged' not in ns.stdout"
+
+    - name: Senha do Grafana (SealedSecret)
+      ansible.builtin.command: kubectl apply -f {{ pasta }}/grafana-admin-sealedsecret.yaml
+      register: segredo
+      changed_when: "'unchanged' not in segredo.stdout"
+
+    - name: Esperar a senha ser decifrada
+      ansible.builtin.command: kubectl -n monitoring get secret grafana-admin -o name
+      register: decifrado
+      until: decifrado.rc == 0
+      retries: 12
+      delay: 5
+      changed_when: false
+
+    - name: Repositório de charts
+      ansible.builtin.command: >-
+        helm repo add prometheus-community https://prometheus-community.github.io/helm-charts --force-update
+      changed_when: false
+
+    - name: Valores e versão atualmente instalados
+      ansible.builtin.shell: |
+        helm list -n monitoring -f '^kps$' -o json
+        echo '---'
+        helm get values kps -n monitoring -o json 2>/dev/null || echo '{}'
+      register: atual
+      changed_when: false
+      check_mode: false
+
+    - name: Calcular a configuração desejada
+      ansible.builtin.set_fact:
+        kps_valores: "{{ lookup('file', pasta ~ '/values.yaml') | from_yaml }}"
+        kps_instalado_versao: >-
+          {{ (atual.stdout.split('---')[0] | from_json | map(attribute='chart') | list + [''])[0] }}
+        kps_instalado_valores: "{{ atual.stdout.split('---')[1] | from_json }}"
+
+    - name: Instalar/atualizar o kube-prometheus-stack (chart {{ kps_chart_versao }})
+      ansible.builtin.command: >-
+        helm upgrade --install kps prometheus-community/kube-prometheus-stack
+        --version {{ kps_chart_versao }}
+        --namespace monitoring
+        -f {{ pasta }}/values.yaml
+        --wait --timeout 10m
+      when: >-
+        kps_instalado_versao != 'kube-prometheus-stack-' ~ kps_chart_versao
+        or kps_instalado_valores != kps_valores

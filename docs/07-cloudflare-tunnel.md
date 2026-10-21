@@ -79,6 +79,10 @@ A Cloudflare cria sozinha o registro DNS. **Toda rota aponta para o Traefik**; q
 
 > ⚠️ **Tipo HTTP, não HTTPS.** Com `https://`, o cloudflared tenta TLS na porta 80 do Traefik e a Cloudflare devolve **502 Bad Gateway**. No log do cloudflared: `tls: failed to verify certificate`. Aconteceu na primeira tentativa; corrigido trocando o tipo da rota.
 
+---
+![Painel Cloudflare](img/rotasCloudflare.png)
+---
+
 ### 6. Teste
 
 ```bash

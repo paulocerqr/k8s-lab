@@ -1,0 +1,42 @@
+# Migrations + seed antes de cada versão nova (RNF11). Fica fora do kustomization:
+# o playbook 11 substitui IMAGEM pela tag do kustomization e recria o Job quando muda.
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: migrar
+  namespace: job-radar
+  labels:
+    app.kubernetes.io/part-of: job-radar
+spec:
+  backoffLimit: 2
+  ttlSecondsAfterFinished: 86400
+  template:
+    metadata:
+      labels: {app: migrar}
+    spec:
+      restartPolicy: Never
+      # sem variáveis automáticas dos Services: o Service "api" geraria
+      # API_PORT=tcp://..., que colide com a configuração API_PORT do app
+      enableServiceLinks: false
+      securityContext:
+        runAsNonRoot: true
+        seccompProfile: {type: RuntimeDefault}
+      initContainers:
+        - name: migrar
+          image: IMAGEM
+          args: ["migrar"]
+          envFrom:
+            - configMapRef: {name: job-radar}
+            - secretRef: {name: job-radar}
+          securityContext: &seguro
+            allowPrivilegeEscalation: false
+            readOnlyRootFilesystem: true
+            capabilities: {drop: ["ALL"]}
+      containers:
+        - name: seed
+          image: IMAGEM
+          args: ["seed"]
+          envFrom:
+            - configMapRef: {name: job-radar}
+            - secretRef: {name: job-radar}
+          securityContext: *seguro

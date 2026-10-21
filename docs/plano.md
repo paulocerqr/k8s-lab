@@ -352,8 +352,8 @@ App   (40%): Job Radar Fase 0     →  Job Radar Fase 1 (MVP) →  calibração 
 ### Semana 3 — 31/10 a 06/11 · Job Radar no cluster e resiliência
 
 **Infra**
-- [ ] Manifests `apps/job-radar` (§5.3): Job de migração, api, worker, CronJobs, Postgres, n8n do lab, Ingress, NetworkPolicy, PDB.
-- [ ] `imagePullSecret` (se o pacote GHCR for privado).
+- [x] Manifests `apps/job-radar` (§5.3): Job de migração, api, worker, CronJobs, Postgres, HTTPRoute, NetworkPolicy, PDB. Ver [09-job-radar.md](09-job-radar.md). (n8n dispensado: D19 do Job Radar)
+- [x] `imagePullSecret` dispensado: pacote do GHCR é público.
 - [ ] Demonstrações: `kubectl drain worker-1`, kill de pod, rollout e rollback, CronJob executando — gravar evidências.
 - [ ] Backup do Postgres (CronJob → bucket GCS ou cópia via Tailscale).
 - [ ] Se o MVP atrasar: publicar só `api` + `migrar` + Postgres (já demonstra o essencial) ou usar `podinfo` + Postgres como substituto.

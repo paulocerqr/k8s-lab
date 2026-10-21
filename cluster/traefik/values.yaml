@@ -47,6 +47,12 @@ topologySpreadConstraints:
   - maxSkew: 1
     topologyKey: kubernetes.io/hostname
     whenUnsatisfiable: DoNotSchedule
+    # Honor: não contar o cp-1 (taint de control plane) como opção; sem isso, numa
+    # atualização a regra exigiria uma réplica no cp-1 e o pod novo ficaria Pending
+    nodeTaintsPolicy: Honor
+    # espalhar cada versão do Deployment por si só: sem isso, numa atualização os pods
+    # antigos entram na conta e as réplicas novas podem acabar todas no mesmo nó
+    matchLabelKeys: [pod-template-hash]
     labelSelector:
       matchLabels:
         app.kubernetes.io/name: traefik

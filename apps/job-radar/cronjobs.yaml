@@ -1,0 +1,80 @@
+# Coletas (D17): um CronJob por fonte, na janela 08-20h de Brasília (RN01).
+apiVersion: batch/v1
+kind: CronJob
+metadata:
+  name: coletar-gupy
+spec:
+  schedule: "0 8-20 * * *"            # de hora em hora
+  timeZone: America/Sao_Paulo
+  concurrencyPolicy: Forbid
+  successfulJobsHistoryLimit: 2
+  failedJobsHistoryLimit: 3
+  jobTemplate:
+    spec:
+      backoffLimit: 1
+      activeDeadlineSeconds: 900
+      template:
+        metadata:
+          labels: {app: coletar}
+        spec:
+          restartPolicy: Never
+          # sem variáveis automáticas dos Services: o Service "api" geraria
+          # API_PORT=tcp://..., que colide com a configuração API_PORT do app
+          enableServiceLinks: false
+          securityContext:
+            runAsNonRoot: true
+            seccompProfile: {type: RuntimeDefault}
+          containers:
+            - name: coletar
+              image: ghcr.io/paulocerqr/job-radar
+              args: ["coletar", "gupy"]
+              envFrom:
+                - configMapRef: {name: job-radar}
+                - secretRef: {name: job-radar}
+              resources:
+                requests: {cpu: 50m, memory: 128Mi}
+                limits: {memory: 256Mi}
+              securityContext:
+                allowPrivilegeEscalation: false
+                readOnlyRootFilesystem: true
+                capabilities: {drop: ["ALL"]}
+---
+apiVersion: batch/v1
+kind: CronJob
+metadata:
+  name: coletar-github
+spec:
+  schedule: "30 8-20/2 * * *"         # a cada 2 horas, na meia hora
+  timeZone: America/Sao_Paulo
+  concurrencyPolicy: Forbid
+  successfulJobsHistoryLimit: 2
+  failedJobsHistoryLimit: 3
+  jobTemplate:
+    spec:
+      backoffLimit: 1
+      activeDeadlineSeconds: 900
+      template:
+        metadata:
+          labels: {app: coletar}
+        spec:
+          restartPolicy: Never
+          # sem variáveis automáticas dos Services: o Service "api" geraria
+          # API_PORT=tcp://..., que colide com a configuração API_PORT do app
+          enableServiceLinks: false
+          securityContext:
+            runAsNonRoot: true
+            seccompProfile: {type: RuntimeDefault}
+          containers:
+            - name: coletar
+              image: ghcr.io/paulocerqr/job-radar
+              args: ["coletar", "github_backendbr"]
+              envFrom:
+                - configMapRef: {name: job-radar}
+                - secretRef: {name: job-radar}
+              resources:
+                requests: {cpu: 50m, memory: 128Mi}
+                limits: {memory: 256Mi}
+              securityContext:
+                allowPrivilegeEscalation: false
+                readOnlyRootFilesystem: true
+                capabilities: {drop: ["ALL"]}

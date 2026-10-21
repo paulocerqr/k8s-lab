@@ -10,4 +10,5 @@
 - import_playbook: playbooks/08-plataforma.yml      # antes do túnel: o token é um SealedSecret
 - import_playbook: playbooks/09-cloudflared.yml
 - import_playbook: playbooks/10-monitoramento.yml
+- import_playbook: playbooks/11-job-radar.yml
 - import_playbook: playbooks/07-beszel-agent.yml    # opcional, independente do resto

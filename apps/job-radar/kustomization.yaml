@@ -1,0 +1,21 @@
+# Job Radar no lab (plano §5.3). A versão da imagem fica SÓ aqui:
+#   kubectl apply -k apps/job-radar   (o Job de migração é aplicado pelo playbook 11)
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+namespace: job-radar
+labels:
+  - pairs:
+      app.kubernetes.io/part-of: job-radar
+    includeSelectors: false
+resources:
+  - namespace.yaml
+  - sealedsecret.yaml
+  - configmap.yaml
+  - postgres.yaml
+  - api.yaml
+  - worker.yaml
+  - cronjobs.yaml
+  - networkpolicy.yaml
+images:
+  - name: ghcr.io/paulocerqr/job-radar
+    newTag: ddd3b920a9ae91ca1848e9c58c1bac55bd076f5c   # commit da main publicado pelo CI

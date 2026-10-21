@@ -1,0 +1,51 @@
+# Worker: alimentador, auditor, expirador, notificações e polling do Telegram.
+# Sempre 1 réplica e Recreate (D16): dois schedulers duplicariam jobs, e só um
+# processo pode fazer polling do bot do Telegram.
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: worker
+spec:
+  replicas: 1
+  strategy:
+    type: Recreate
+  selector:
+    matchLabels:
+      app: worker
+  template:
+    metadata:
+      labels:
+        app: worker
+    spec:
+      terminationGracePeriodSeconds: 60   # termina o lote de auditoria em andamento (RNF12)
+      # sem variáveis automáticas dos Services: o Service "api" geraria
+      # API_PORT=tcp://..., que colide com a configuração API_PORT do app
+      enableServiceLinks: false
+      securityContext:
+        runAsNonRoot: true
+        seccompProfile: {type: RuntimeDefault}
+      containers:
+        - name: worker
+          image: ghcr.io/paulocerqr/job-radar
+          args: ["worker"]
+          envFrom:
+            - configMapRef: {name: job-radar}
+            - secretRef: {name: job-radar}
+          livenessProbe:                  # heartbeat gravado pelo scheduler a cada 30 s
+            exec:
+              command: ["job-radar", "worker-saude"]
+            initialDelaySeconds: 60
+            periodSeconds: 60
+            timeoutSeconds: 15
+          resources:
+            requests: {cpu: 100m, memory: 192Mi}
+            limits: {memory: 384Mi}
+          securityContext:
+            allowPrivilegeEscalation: false
+            readOnlyRootFilesystem: true
+            capabilities: {drop: ["ALL"]}
+          volumeMounts:
+            - {name: tmp, mountPath: /tmp}
+      volumes:
+        - name: tmp
+          emptyDir: {}

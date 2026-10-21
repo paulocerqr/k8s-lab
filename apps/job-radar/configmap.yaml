@@ -1,0 +1,11 @@
+# Configuração não sensível (a sensível está no SealedSecret "job-radar")
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: job-radar
+data:
+  TZ: America/Sao_Paulo
+  LOG_FORMAT: json
+  LOG_LEVEL: INFO
+  COLETA_NO_WORKER: "false"      # no cluster, a coleta é feita pelos CronJobs (D17, K10)
+  WORKER_HEARTBEAT_PATH: /tmp/job-radar-worker.heartbeat

@@ -1,0 +1,18 @@
+# O Postgres só aceita conexões de pods do próprio Job Radar (api, worker, coletas,
+# migração). O Cilium aplica as NetworkPolicy.
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: postgres
+spec:
+  podSelector:
+    matchLabels:
+      app: postgres
+  policyTypes: ["Ingress"]
+  ingress:
+    - from:
+        - podSelector:
+            matchExpressions:
+              - {key: app, operator: In, values: [api, worker, coletar, migrar]}
+      ports:
+        - port: 5432

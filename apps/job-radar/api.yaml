@@ -1,0 +1,93 @@
+# API (FastAPI): https://jobradar-lab.utileasy.com.br
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: api
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app: api
+  template:
+    metadata:
+      labels:
+        app: api
+    spec:
+      topologySpreadConstraints:
+        - maxSkew: 1
+          topologyKey: kubernetes.io/hostname
+          whenUnsatisfiable: DoNotSchedule
+          # Honor: não contar o cp-1 (taint de control plane) como opção; sem isso, numa
+          # atualização a regra exigiria uma réplica no cp-1 e o pod novo ficaria Pending
+          nodeTaintsPolicy: Honor
+          # espalhar cada versão do Deployment por si só: sem isso, numa atualização os pods
+          # antigos entram na conta e as réplicas novas podem acabar todas no mesmo nó
+          matchLabelKeys: [pod-template-hash]
+          labelSelector:
+            matchLabels: {app: api}
+      # sem variáveis automáticas dos Services: o Service "api" geraria
+      # API_PORT=tcp://..., que colide com a configuração API_PORT do app
+      enableServiceLinks: false
+      securityContext:
+        runAsNonRoot: true
+        seccompProfile: {type: RuntimeDefault}
+      containers:
+        - name: api
+          image: ghcr.io/paulocerqr/job-radar
+          args: ["api"]
+          envFrom:
+            - configMapRef: {name: job-radar}
+            - secretRef: {name: job-radar}
+          ports:
+            - name: http
+              containerPort: 8000
+          readinessProbe:                 # banco acessível (RNF10)
+            httpGet: {path: /readyz, port: http}
+            periodSeconds: 10
+          livenessProbe:                  # processo vivo, sem depender do banco
+            httpGet: {path: /healthz, port: http}
+            initialDelaySeconds: 10
+            periodSeconds: 20
+          resources:
+            requests: {cpu: 100m, memory: 192Mi}
+            limits: {memory: 384Mi}
+          securityContext:
+            allowPrivilegeEscalation: false
+            readOnlyRootFilesystem: true
+            capabilities: {drop: ["ALL"]}
+          volumeMounts:
+            - {name: tmp, mountPath: /tmp}
+      volumes:
+        - name: tmp
+          emptyDir: {}
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: api
+spec:
+  selector:
+    app: api
+  ports:
+    - port: 80
+      targetPort: http
+---
+apiVersion: policy/v1
+kind: PodDisruptionBudget
+metadata:
+  name: api
+spec:
+  minAvailable: 1
+  selector:
+    matchLabels:
+      app: api
+---
+apiVersion: gateway.networking.k8s.io/v1
+kind: HTTPRoute
+metadata:
+  name: api
+spec:
+  parentRefs: [{name: lab, namespace: traefik}]
+  hostnames: ["jobradar-lab.utileasy.com.br"]
+  rules:
+    - backendRefs: [{name: api, port: 80}]

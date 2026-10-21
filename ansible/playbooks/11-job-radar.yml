@@ -1,0 +1,55 @@
+# docs/09-job-radar.md: Job Radar no cluster (plano §5.3), executado no PC.
+# Pré-requisitos: 06-traefik (rota), 08-plataforma (local-path e Sealed Secrets).
+- name: Job Radar
+  hosts: localhost
+  connection: local
+  gather_facts: false
+  become: false
+
+  environment:
+    KUBECONFIG: "{{ kubeconfig_local }}"
+
+  vars:
+    pasta: "{{ playbook_dir }}/../../apps/job-radar"
+    kustomization: "{{ lookup('file', pasta ~ '/kustomization.yaml') | from_yaml }}"
+    imagem: >-
+      {{ (kustomization.images | selectattr('name', 'equalto', 'ghcr.io/paulocerqr/job-radar') | first).name }}:{{
+         (kustomization.images | selectattr('name', 'equalto', 'ghcr.io/paulocerqr/job-radar') | first).newTag }}
+
+  tasks:
+    - name: Aplicar os manifestos (kustomize)
+      ansible.builtin.command: kubectl apply -k {{ pasta }}
+      register: aplicados
+      changed_when: "aplicados.stdout_lines | reject('search', 'unchanged') | list | length > 0"
+
+    - name: Esperar o Postgres
+      ansible.builtin.command: kubectl -n job-radar rollout status statefulset/postgres --timeout=5m
+      changed_when: false
+
+    # Job é imutável: só recriar quando a imagem mudar (ou se ainda não existir)
+    - name: Imagem da última migração
+      ansible.builtin.command: >-
+        kubectl -n job-radar get job migrar -o jsonpath={.spec.template.spec.initContainers[0].image}
+      register: migracao_atual
+      failed_when: false
+      changed_when: false
+      check_mode: false
+
+    - name: Recriar o Job de migração para a imagem {{ imagem }}
+      when: migracao_atual.stdout != imagem
+      block:
+        - name: Apagar o Job anterior
+          ansible.builtin.command: kubectl -n job-radar delete job migrar --ignore-not-found --wait=true
+
+        - name: Criar o Job de migração + seed
+          ansible.builtin.shell: >-
+            sed 's#IMAGEM#{{ imagem }}#g' {{ pasta }}/migrar-job.yaml | kubectl apply -f -
+
+    - name: Esperar a migração terminar
+      ansible.builtin.command: kubectl -n job-radar wait job/migrar --for=condition=Complete --timeout=5m
+      changed_when: false
+
+    - name: Esperar a API e o worker
+      ansible.builtin.command: kubectl -n job-radar rollout status deployment/{{ item }} --timeout=5m
+      loop: [api, worker]
+      changed_when: false

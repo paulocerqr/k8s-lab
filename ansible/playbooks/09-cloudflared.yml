@@ -1,0 +1,36 @@
+# docs/07-cloudflare-tunnel.md: conector do Cloudflare Tunnel (K03), executado no PC.
+# Pré-requisitos: 06-traefik (destino das rotas) e 08-plataforma (Sealed Secrets).
+- name: Cloudflare Tunnel (cloudflared)
+  hosts: localhost
+  connection: local
+  gather_facts: false
+  become: false
+
+  environment:
+    KUBECONFIG: "{{ kubeconfig_local }}"
+
+  vars:
+    pasta: "{{ playbook_dir }}/../../cluster/cloudflared"
+
+  tasks:
+    - name: Namespace, token cifrado e Deployment
+      ansible.builtin.command: kubectl apply -f {{ pasta }}/{{ item }}
+      loop:
+        - namespace.yaml
+        - sealedsecret.yaml
+        - deployment.yaml
+      register: aplicados
+      changed_when: "aplicados.stdout_lines | reject('search', 'unchanged') | list | length > 0"
+
+    # O controlador do Sealed Secrets decifra e cria o Secret "tunnel-token"
+    - name: Esperar o token ser decifrado
+      ansible.builtin.command: kubectl -n cloudflared get secret tunnel-token -o name
+      register: segredo
+      until: segredo.rc == 0
+      retries: 12
+      delay: 5
+      changed_when: false
+
+    - name: Esperar as réplicas conectarem ao túnel
+      ansible.builtin.command: kubectl -n cloudflared rollout status deployment/cloudflared --timeout=3m
+      changed_when: false

@@ -337,10 +337,10 @@ App   (40%): Job Radar Fase 0     →  Job Radar Fase 1 (MVP) →  calibração 
 - [x] local-path-provisioner (StorageClass padrão). Ver [06-plataforma.md](06-plataforma.md).
 - [x] Sealed Secrets, com cópia da chave no PC para as recriações.
 - [x] Proxy reverso: Gateway API com o Traefik (K23); kube-proxy substituído pelo Cilium (K24). Ver [05-entrada.md](05-entrada.md).
-- [ ] cloudflared (2 réplicas) + DNS `<app>-lab.utileasy.com.br` na Cloudflare (K25).
-- [ ] App de teste (`whoami`) publicado em `test.lab.<dominio>`.
+- [x] cloudflared (2 réplicas) + rota/DNS `<app>-lab.utileasy.com.br` na Cloudflare (K25). Ver [07-cloudflare-tunnel.md](07-cloudflare-tunnel.md).
+- [x] App de teste (`whoami`) publicado em https://teste-lab.utileasy.com.br (21/10).
 - [ ] kube-prometheus-stack no `cp-1`; dashboards de nós e pods.
-- **Marco (30/10):** app de teste acessível via HTTPS sem portas abertas; Grafana com métricas.
+- **Marco (30/10):** app de teste acessível via HTTPS sem portas abertas ✅ **(21/10)**; Grafana com métricas (pendente).
 
 **App (Job Radar — Fase 1 do `PLANO.md`)**
 - [ ] Coletores Gupy e GitHub; normalizador; dedupe; pré-filtro (Brasília-DF).

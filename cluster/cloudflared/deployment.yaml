@@ -1,0 +1,83 @@
+# Conector do Cloudflare Tunnel (K03): o cluster abre conexões de SAÍDA para a
+# Cloudflare; nenhuma porta de entrada é aberta. As rotas (hostname → serviço) ficam
+# no painel do túnel "k8s-lab" e apontam para o Traefik:
+#   <app>-lab.utileasy.com.br → http://traefik.traefik.svc.cluster.local:80
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: cloudflared
+  namespace: cloudflared
+spec:
+  replicas: 2                              # cada réplica abre 4 conexões com a Cloudflare
+  selector:
+    matchLabels:
+      app: cloudflared
+  template:
+    metadata:
+      labels:
+        app: cloudflared
+    spec:
+      # uma réplica por nó: o drain de um worker não derruba a entrada
+      topologySpreadConstraints:
+        - maxSkew: 1
+          topologyKey: kubernetes.io/hostname
+          whenUnsatisfiable: DoNotSchedule
+          labelSelector:
+            matchLabels:
+              app: cloudflared
+      securityContext:
+        runAsNonRoot: true
+        seccompProfile:
+          type: RuntimeDefault
+      containers:
+        - name: cloudflared
+          image: cloudflare/cloudflared:2026.10.0
+          args:
+            - tunnel
+            - --no-autoupdate                # a versão é a da imagem, atualizada pelo Git
+            - --metrics=0.0.0.0:2000
+            - run
+          env:
+            - name: TUNNEL_TOKEN
+              valueFrom:
+                secretKeyRef:
+                  name: tunnel-token
+                  key: token
+          ports:
+            - name: metrics
+              containerPort: 2000
+          readinessProbe:                    # /ready só responde 200 com o túnel conectado
+            httpGet:
+              path: /ready
+              port: metrics
+            periodSeconds: 10
+            failureThreshold: 3
+          livenessProbe:
+            httpGet:
+              path: /ready
+              port: metrics
+            initialDelaySeconds: 30
+            periodSeconds: 20
+            failureThreshold: 3
+          resources:
+            requests:
+              cpu: 25m
+              memory: 32Mi
+            limits:
+              memory: 128Mi
+          securityContext:
+            allowPrivilegeEscalation: false
+            readOnlyRootFilesystem: true
+            capabilities:
+              drop: ["ALL"]
+---
+apiVersion: policy/v1
+kind: PodDisruptionBudget
+metadata:
+  name: cloudflared
+  namespace: cloudflared
+spec:
+  minAvailable: 1
+  selector:
+    matchLabels:
+      app: cloudflared

@@ -1,0 +1,10 @@
+$ kubectl -n cloudflared get pods -o wide
+NAME                          READY  STATUS   NODE
+cloudflared-64d45dd9b4-4fb7w  1/1    Running  worker-1
+cloudflared-64d45dd9b4-pm9r5  1/1    Running  worker-2
+
+$ kubectl -n cloudflared logs deploy/cloudflared | grep "Registered tunnel connection"
+2026-10-21T20:04:48Z INF Registered tunnel connection connIndex=0 connection=<id> event=0 ip=<cloudflare> location=ord08
+2026-10-21T20:04:48Z INF Registered tunnel connection connIndex=1 connection=<id> event=0 ip=<cloudflare> location=ord02
+2026-10-21T20:04:49Z INF Registered tunnel connection connIndex=2 connection=<id> event=0 ip=<cloudflare> location=ord15
+2026-10-21T20:04:50Z INF Registered tunnel connection connIndex=3 connection=<id> event=0 ip=<cloudflare> location=ord11

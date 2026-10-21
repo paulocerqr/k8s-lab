@@ -1,0 +1,14 @@
+$ kubectl get gatewayclass,gateway,httproute -A
+NAME                                             CONTROLLER                      ACCEPTED   AGE
+gatewayclass.gateway.networking.k8s.io/traefik   traefik.io/gateway-controller   True       10h
+
+NAMESPACE   NAME                                    CLASS     ADDRESS   PROGRAMMED   AGE
+traefik     gateway.gateway.networking.k8s.io/lab   traefik             True         10h
+
+NAMESPACE   NAME                                         HOSTNAMES                       AGE
+teste       httproute.gateway.networking.k8s.io/whoami   ["teste-lab.utileasy.com.br"]   8m2s
+
+$ kubectl -n traefik get pods -o wide
+NAME                      READY  STATUS   NODE
+traefik-7ff4b7596d-sxw6g  1/1    Running  worker-1
+traefik-7ff4b7596d-ttq5n  1/1    Running  worker-2

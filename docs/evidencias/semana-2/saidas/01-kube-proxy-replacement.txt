@@ -1,0 +1,6 @@
+$ kubectl -n kube-system exec ds/cilium -c cilium-agent -- cilium-dbg status --verbose | grep ^KubeProxyReplacement
+KubeProxyReplacement:   True   [ens4   10.10.0.3 fe80::4001:aff:fe0a:3 (Direct R
+KubeProxyReplacement Details:
+
+$ kubectl -n kube-system get ds kube-proxy
+Error from server (NotFound): daemonsets.apps "kube-proxy" not found

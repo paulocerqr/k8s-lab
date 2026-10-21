@@ -1,0 +1,7 @@
+$ for i in $(seq 1 8); do curl -s https://teste-lab.utileasy.com.br | grep ^Hostname; done | sort | uniq -c
+      4 Hostname: whoami-6b75499bb8-4t4xv
+      4 Hostname: whoami-6b75499bb8-68ntd
+
+$ curl -sI https://teste-lab.utileasy.com.br
+HTTP/2 200 
+server: cloudflare

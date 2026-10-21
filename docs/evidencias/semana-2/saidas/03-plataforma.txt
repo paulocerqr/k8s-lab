@@ -1,0 +1,7 @@
+$ kubectl get storageclass
+NAME                   PROVISIONER             RECLAIMPOLICY   VOLUMEBINDINGMODE      ALLOWVOLUMEEXPANSION   AGE
+local-path (default)   rancher.io/local-path   Delete          WaitForFirstConsumer   false                  6h22m
+
+$ kubectl -n kube-system get deploy sealed-secrets-controller
+NAME                        READY   UP-TO-DATE   AVAILABLE   AGE
+sealed-secrets-controller   1/1     1            1           6h22m

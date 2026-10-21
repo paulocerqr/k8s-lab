@@ -2,7 +2,7 @@
 
 Cluster Kubernetes autogerenciado (kubeadm) em 3 VMs na Google Cloud, montado do zero com Terraform e Ansible, acessado só pela tailnet (Tailscale) e publicado sem portas abertas (Cloudflare Tunnel). A aplicação principal é o [Job Radar](https://github.com/paulocerqr/job-radar).
 
-**Status:** semana 1 de 4 concluída. Cluster de 3 nós `Ready` (Kubernetes 1.37.1, Cilium 1.20.3), **recriável do zero em ≈ 6 min** com Terraform + Ansible, sem passos manuais.
+**Status:** semana 3 de 4 concluída. Cluster de 3 nós (Kubernetes 1.37.1, Cilium 1.20.3 sem kube-proxy), **recriável do zero em ≈ 6 min** com Terraform + Ansible. O Job Radar roda no cluster e está público em https://jobradar-lab.utileasy.com.br (Cloudflare Tunnel → Traefik), com coleta por CronJob, auditoria por IA e notificações no Telegram. Próximo: demonstrações de resiliência (drain, rollout e rollback).
 
 | Do zero ao cluster pronto | Tempo |
 |---|---|
@@ -12,7 +12,7 @@ Cluster Kubernetes autogerenciado (kubeadm) em 3 VMs na Google Cloud, montado do
 
 ![kubectl get nodes](docs/evidencias/semana-1/img/07-kubectl-nodes.png)
 
-Mais evidências (saídas reais de cada etapa): [docs/evidencias/semana-1](docs/evidencias/semana-1/README.md). Plano completo, decisões e cronograma: [`docs/plano.md`](docs/plano.md).
+Mais evidências (saídas reais de cada etapa): [semana 1](docs/evidencias/semana-1/README.md), [semana 2](docs/evidencias/semana-2/saidas), [semana 3](docs/evidencias/semana-3/README.md). Plano completo, decisões e cronograma: [`docs/plano.md`](docs/plano.md).
 
 ## Documentação
 
@@ -31,18 +31,20 @@ Mais evidências (saídas reais de cada etapa): [docs/evidencias/semana-1](docs/
 | [Incidente 001](docs/incidentes/001-cloud-init-debian-gcp.md) | Nós fora da tailnet: Debian da GCP sem cloud-init |
 | [Incidente 002](docs/incidentes/002-gateway-cilium-backend-mesmo-no.md) | Gateway API do Cilium falha para backends no mesmo nó (bug [cilium#47940](https://github.com/cilium/cilium/issues/47940)) |
 | [Evidências — semana 1](docs/evidencias/semana-1/README.md) | Saídas reais dos comandos (com imagens): Terraform, firewall, tailnet, nós, pods, Cilium, teste de rede e Ansible |
+| [Evidências — semana 2](docs/evidencias/semana-2/saidas) | Entrada, plataforma, Cloudflare Tunnel e observabilidade |
+| [Evidências — semana 3](docs/evidencias/semana-3/README.md) | Job Radar no cluster: pods, API pública, coleta, auditoria e Telegram |
 
 ## Arquitetura (resumo)
 
 | Nó | Máquina | Papel |
 |---|---|---|
-| `cp-1` | e2-standard-4 (4 vCPU / 16 GB) | control plane + monitoring |
-| `worker-1` | e2-standard-2 (2 vCPU / 8 GB) | aplicações |
+| `cp-1` | e2-standard-4 (4 vCPU / 16 GB) | control plane + Prometheus/Grafana |
+| `worker-1` | e2-standard-2 (2 vCPU / 8 GB) | aplicações (inclui o Postgres do Job Radar) |
 | `worker-2` | e2-standard-2 (2 vCPU / 8 GB) | aplicações |
 
 - **Rede:** VPC própria; nenhuma porta de entrada aberta para a internet. Entre os nós, só a subnet do lab.
 - **Acesso:** Tailscale SSH e `kubectl` pela tailnet; IAP como emergência.
-- **Publicação:** Cloudflare Tunnel → ingress-nginx → serviços.
+- **Publicação:** Cloudflare Tunnel → Traefik (Gateway API) → serviços; segredos cifrados no Git (Sealed Secrets).
 - **Observabilidade:** Beszel nos hosts + kube-prometheus-stack no cluster.
 
 ## Pré-requisitos

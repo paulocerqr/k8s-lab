@@ -1,0 +1,103 @@
+# Migração única de um cluster que já tinha kube-proxy para o kube-proxy replacement
+# do Cilium (K23). Clusters novos já nascem sem kube-proxy (template do kubeadm).
+#
+# Ordem: 05-cilium.yml (liga o KPR) → este playbook (remove o kube-proxy e as regras dele).
+#   ansible-playbook playbooks/05-cilium.yml
+#   ansible-playbook playbooks/migracao-kube-proxy.yml
+
+- name: Remover o kube-proxy do cluster
+  hosts: localhost
+  connection: local
+  gather_facts: false
+  become: false
+  environment:
+    KUBECONFIG: "{{ kubeconfig_local }}"
+
+  tasks:
+    - name: Confirmar que o Cilium já está com o kube-proxy replacement
+      ansible.builtin.command: >-
+        kubectl -n kube-system exec ds/cilium -c cilium-agent --
+        cilium-dbg status --verbose
+      register: status_cilium
+      changed_when: false
+      # trava: sem o KPR ativo, remover o kube-proxy derrubaria todos os Services
+      failed_when: status_cilium.stdout is not search('KubeProxyReplacement:\s+True')
+
+    - name: Apagar o DaemonSet e a configuração do kube-proxy
+      ansible.builtin.command: kubectl -n kube-system delete {{ item }} --ignore-not-found
+      loop:
+        - daemonset/kube-proxy
+        - configmap/kube-proxy
+      register: apagados
+      changed_when: "'deleted' in apagados.stdout"
+
+    # O delete retorna na hora, mas cada pod do kube-proxy leva até ~30 s para sair e,
+    # nesse intervalo, ainda recria as regras KUBE-*. Limpar antes disso não adianta.
+    - name: Esperar os pods do kube-proxy terminarem
+      ansible.builtin.command: >-
+        kubectl -n kube-system wait --for=delete pod -l k8s-app=kube-proxy --timeout=2m
+      changed_when: false
+
+- name: Limpar as regras de iptables deixadas pelo kube-proxy
+  hosts: k8s
+  gather_facts: false
+
+  tasks:
+    # Remove só as cadeias do kube-proxy. Ficam as do kubelet (KUBE-FIREWALL,
+    # KUBE-IPTABLES-HINT, KUBE-KUBELET-CANARY: ele as recria e elas devem existir),
+    # as do Tailscale (ts-*) e as do Cilium (CILIUM_*).
+    - name: Remover regras do kube-proxy (IPv4 e IPv6)
+      ansible.builtin.shell: |
+        set -o pipefail
+        padrao='KUBE-(SERVICES|SVC-|SVL-|SEP-|EXT-|FW-|XLB-|NODEPORTS|EXTERNAL-SERVICES|FORWARD|PROXY-|MARK-MASQ|POSTROUTING|LOAD-BALANCER)'
+        mudou=0
+        for ipt in iptables ip6tables; do
+          # contar (e não "grep -q"): o -q fecha o pipe cedo, o iptables-save recebe
+          # SIGPIPE e, com pipefail, o "if" dava falso justamente na tabela grande
+          if [ "$($ipt-save | grep -cE "$padrao")" -gt 0 ]; then
+            $ipt-save | grep -vE "$padrao" | $ipt-restore
+            mudou=1
+          fi
+        done
+        echo "mudou=$mudou"
+      args:
+        executable: /bin/bash
+      register: limpeza
+      changed_when: "'mudou=1' in limpeza.stdout"
+
+- name: Reiniciar o Cilium e conferir
+  hosts: localhost
+  connection: local
+  gather_facts: false
+  become: false
+  environment:
+    KUBECONFIG: "{{ kubeconfig_local }}"
+
+  tasks:
+    - name: Houve limpeza de regras em algum nó?
+      ansible.builtin.set_fact:
+        houve_limpeza: >-
+          {{ groups['k8s'] | map('extract', hostvars, ['limpeza', 'changed']) | select | list | length > 0 }}
+
+    - name: Reiniciar os agentes do Cilium
+      ansible.builtin.command: kubectl -n kube-system rollout restart daemonset/cilium
+      when: houve_limpeza
+
+    - name: Esperar os agentes voltarem
+      ansible.builtin.command: kubectl -n kube-system rollout status daemonset/cilium --timeout=5m
+      changed_when: false
+
+    # Os agentes realocam as portas do proxy ao reiniciar; o Envoy (DaemonSet à parte)
+    # continuaria escutando nas portas antigas e o Gateway daria timeout. Reiniciar
+    # o Envoy depois dos agentes faz os dois sincronizarem.
+    - name: Reiniciar o Envoy do Cilium (depois dos agentes)
+      ansible.builtin.command: kubectl -n kube-system rollout restart daemonset/cilium-envoy
+      when: houve_limpeza
+
+    - name: Esperar o Envoy voltar
+      ansible.builtin.command: kubectl -n kube-system rollout status daemonset/cilium-envoy --timeout=5m
+      changed_when: false
+
+    - name: Esperar todos os nós ficarem Ready
+      ansible.builtin.command: kubectl wait --for=condition=Ready nodes --all --timeout=5m
+      changed_when: false

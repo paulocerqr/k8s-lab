@@ -27,7 +27,9 @@ ansible/
     ├── 03-workers.yml
     ├── 04-kubeconfig-local.yml
     ├── 05-cilium.yml
-    └── 06-beszel-agent.yml
+    ├── 06-traefik.yml
+    ├── 07-beszel-agent.yml
+    └── migracao-kube-proxy.yml     # uso único: cluster antigo com kube-proxy → Cilium KPR
 ```
 
 | Playbook | Onde roda | Equivale a | O que faz |
@@ -37,8 +39,9 @@ ansible/
 | `02-control-plane` | `cp-1` | Passo 2 | Lê nome e IP da tailnet do próprio Tailscale; gera a configuração; `kubeadm init` |
 | `03-workers` | workers | Passo 5 | Token novo (30 min) e `join`, com `no_log` |
 | `04-kubeconfig-local` | `cp-1` → PC | Passo 3 | Copia o `admin.conf` para `~/.kube/k8s-lab.conf` apontando para a tailnet |
-| `05-cilium` | PC | Passo 4 | `helm upgrade --install` com `cluster/cilium/values.yaml`; espera os nós `Ready` |
-| `06-beszel-agent` | 3 nós | — | Opcional: agent do Beszel (binário + systemd), só se as credenciais do Hub existirem |
+| `05-cilium` | PC | Passo 4 | Cilium com kube-proxy replacement (`k8sServiceHost` lido do cluster); só reinstala se versão ou valores mudarem |
+| `06-traefik` | PC | — | CRDs da Gateway API e Traefik com o Gateway `lab` ([05-entrada.md](05-entrada.md)) |
+| `07-beszel-agent` | 3 nós | — | Opcional: agent do Beszel (binário + systemd), só se as credenciais do Hub existirem |
 
 ## Como a idempotência foi garantida
 
@@ -101,7 +104,7 @@ Resultado: 3 nós `Ready` (v1.37.1, containerd 2.4.2), 18 pods `Running`, Cilium
 
 ## Beszel (opcional)
 
-O `06-beszel-agent.yml` só roda se `beszel_hub_url` estiver definido. As credenciais ficam cifradas com o `ansible-vault`:
+O `07-beszel-agent.yml` só roda se `beszel_hub_url` estiver definido. As credenciais ficam cifradas com o `ansible-vault`:
 
 ```bash
 ansible-vault create group_vars/all/vault.yml

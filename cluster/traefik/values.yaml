@@ -1,0 +1,65 @@
+# Traefik — chart traefik/traefik 42.1.0 (Traefik v3.7.15)
+# Proxy reverso do cluster pela Gateway API (K23). Substitui a Gateway API do
+# Cilium, que não alcança backends no mesmo nó (docs/incidentes/002).
+
+# Só Gateway API: sem os providers de Ingress e de CRDs próprios do Traefik
+providers:
+  kubernetesGateway:
+    enabled: true
+  kubernetesIngress:
+    enabled: false
+  kubernetesCRD:
+    enabled: false
+
+# Gateway "lab" criado pelo chart. O TLS termina na Cloudflare; o cloudflared fala
+# HTTP com o Service do Traefik por dentro do cluster.
+gateway:
+  name: lab
+  listeners:
+    web:
+      port: 8000
+      hostname: "*.utileasy.com.br"     # <app>-lab.utileasy.com.br (K25)
+      protocol: HTTP
+      namespacePolicy:
+        from: All                       # rotas de qualquer namespace
+
+gatewayClass:
+  name: traefik
+
+# Só dentro do cluster: quem chega de fora é o túnel da Cloudflare
+service:
+  spec:
+    type: ClusterIP
+
+# Sem IngressClass: só Gateway API
+ingressClass:
+  enabled: false
+
+ports:
+  websecure:
+    expose:
+      default: false                    # HTTPS fica na Cloudflare
+
+# Duas réplicas, uma em cada worker: o drain de um nó não derruba a entrada
+deployment:
+  replicas: 2
+topologySpreadConstraints:
+  - maxSkew: 1
+    topologyKey: kubernetes.io/hostname
+    whenUnsatisfiable: DoNotSchedule
+    labelSelector:
+      matchLabels:
+        app.kubernetes.io/name: traefik
+podDisruptionBudget:
+  enabled: true
+  minAvailable: 1
+
+resources:
+  requests:
+    cpu: 50m
+    memory: 64Mi
+  limits:
+    memory: 256Mi
+
+accessLog:
+  enabled: true

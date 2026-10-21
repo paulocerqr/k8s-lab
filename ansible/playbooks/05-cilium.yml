@@ -1,5 +1,6 @@
-# Passo 4 do docs/03-kubeadm.md: Cilium (CNI) via Helm, executado no PC de administração.
-- name: Cilium (CNI)
+# Passo 4 do docs/03-kubeadm.md + docs/05-entrada.md: Cilium (CNI e kube-proxy
+# replacement) via Helm, executado no PC de administração.
+- name: Cilium (CNI e kube-proxy replacement)
   hosts: localhost
   connection: local
   gather_facts: false
@@ -8,28 +9,62 @@
   environment:
     KUBECONFIG: "{{ kubeconfig_local }}"
 
+  vars:
+    raiz_repo: "{{ playbook_dir }}/../.."
+
   tasks:
+    # Sem kube-proxy, o Cilium precisa do endereço real do API server (não do Service
+    # "kubernetes", que é justamente o que ele vai implementar). Lido do próprio cluster.
+    - name: IP do API server (cp-1 na VPC)
+      ansible.builtin.command:
+        argv:
+          - kubectl
+          - get
+          - nodes
+          - -l
+          - node-role.kubernetes.io/control-plane
+          - -o
+          - jsonpath={.items[0].status.addresses[?(@.type=="InternalIP")].address}
+      register: api_server_ip
+      changed_when: false
+      check_mode: false
+
     - name: Repositório de charts do Cilium
       ansible.builtin.command: helm repo add cilium https://helm.cilium.io/ --force-update
       changed_when: false
 
-    - name: Ler a versão instalada do Cilium
-      ansible.builtin.command: helm list -n kube-system -f '^cilium$' -o json
-      register: cilium_instalado
+    - name: Valores e versão atualmente instalados
+      ansible.builtin.shell: |
+        helm list -n kube-system -f '^cilium$' -o json
+        echo '---'
+        helm get values cilium -n kube-system -o json 2>/dev/null || echo '{}'
+      register: cilium_atual
       changed_when: false
       check_mode: false
+
+    - name: Calcular a configuração desejada
+      ansible.builtin.set_fact:
+        cilium_valores: >-
+          {{ lookup('file', raiz_repo ~ '/cluster/cilium/values.yaml') | from_yaml
+             | combine({'k8sServiceHost': api_server_ip.stdout}) }}
+        cilium_instalado_versao: >-
+          {{ (cilium_atual.stdout.split('---')[0] | from_json | map(attribute='chart') | list + [''])[0] }}
+        cilium_instalado_valores: "{{ cilium_atual.stdout.split('---')[1] | from_json }}"
 
     - name: Instalar/atualizar o Cilium {{ cilium_versao }}
       ansible.builtin.command: >-
         helm upgrade --install cilium cilium/cilium
         --version {{ cilium_versao }}
         --namespace kube-system
-        -f {{ playbook_dir }}/../../cluster/cilium/values.yaml
+        -f {{ raiz_repo }}/cluster/cilium/values.yaml
+        --set k8sServiceHost={{ api_server_ip.stdout }}
         --wait --timeout 10m
+      # só quando a versão ou os valores mudaram: rodar de novo não reinicia o CNI
       when: >-
-        cilium_instalado.stdout | from_json | map(attribute='chart')
-        | select('equalto', 'cilium-' ~ cilium_versao) | list | length == 0
+        cilium_instalado_versao != 'cilium-' ~ cilium_versao
+        or cilium_instalado_valores != cilium_valores
 
     - name: Esperar todos os nós ficarem Ready
       ansible.builtin.command: kubectl wait --for=condition=Ready nodes --all --timeout=5m
       changed_when: false
+

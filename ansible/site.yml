@@ -6,4 +6,5 @@
 - import_playbook: playbooks/03-workers.yml
 - import_playbook: playbooks/04-kubeconfig-local.yml
 - import_playbook: playbooks/05-cilium.yml
-- import_playbook: playbooks/06-beszel-agent.yml
+- import_playbook: playbooks/06-traefik.yml
+- import_playbook: playbooks/07-beszel-agent.yml

@@ -41,7 +41,7 @@ Mesmo assim: **budget alert** em 50%, 80% e 100% do saldo.
 | O1 | Infraestrutura como código, do zero | Terraform cria VMs, firewall e budget; `terraform destroy` reproduzível |
 | O2 | Cluster Kubernetes montado do zero | kubeadm + Cilium em Debian 13 |
 | O3 | Acesso administrativo privado | kubectl e SSH somente via Tailscale; 6443 fechado na internet |
-| O4 | Publicação sem portas abertas | Cloudflare Tunnel → ingress-nginx → apps, TLS na borda |
+| O4 | Publicação sem portas abertas | Cloudflare Tunnel → Traefik (Gateway API) → apps, TLS na borda |
 | O5 | Aplicação real com estado | Job Radar (API, worker singleton, CronJobs de coleta, Postgres, n8n) |
 | O6 | Resiliência | `kubectl drain` de um worker sem indisponibilidade |
 | O7 | Observabilidade em duas camadas | Beszel (hosts) + kube-prometheus-stack (cluster) |
@@ -71,7 +71,7 @@ Escopo mínimo: **O1–O7**. **O8** e o staging do **UtilityDev** são diferenci
 │  │                          │  │                          │  │                       │ │
 │  │ control plane (kubeadm)  │  │ apps (Job Radar, ...)    │  │ apps (réplicas)       │ │
 │  │ + monitoring (toleration)│  │ cloudflared (réplica)    │  │ cloudflared (réplica) │ │
-│  │   Prometheus, Grafana    │  │ ingress-nginx            │  │ ingress-nginx         │ │
+│  │   Prometheus, Grafana    │  │ Traefik (Gateway API)    │  │ Traefik (Gateway API) │ │
 │  │ Tailscale · Beszel agent │  │ Tailscale · Beszel agent │  │ Tailscale · Beszel ag.│ │
 │  └──────────────────────────┘  └──────────────────────────┘  └───────────────────────┘ │
 │              CNI Cilium · Pod CIDR 10.244.0.0/16 · Service CIDR 10.96.0.0/12            │
@@ -130,7 +130,7 @@ Escopo mínimo: **O1–O7**. **O8** e o staging do **UtilityDev** são diferenci
 | K01 | **kubeadm**, com *timebox* de 2 dias; fallback **k3s** | k3s direto, GKE | Domínio dos componentes (etcd, certificados, upgrade); base da CKA. Se o cluster não estiver `Ready` em 2 dias, trocar para k3s para não comprometer o prazo. |
 | K02 | **Cilium** como CNI | Calico, Flannel | NetworkPolicy + Hubble para documentação visual. |
 | K03 | **Cloudflare Tunnel** para entrada pública | hostPort + IP estático; CCM + LB da GCP | Sem portas abertas, sem IP fixo, TLS na borda, DNS já na Cloudflare. Resolve a ausência de LoadBalancer fora do GKE. |
-| K04 | **ingress-nginx** como roteador interno (Service ClusterIP) | Rotear direto do tunnel para cada Service | Um único destino para o tunnel; regras de host/path versionadas como Ingress. |
+| K04 | ~~ingress-nginx~~ → substituída pela K23 | — | O projeto ingress-nginx foi aposentado (sem manutenção, inclusive de segurança, desde mar/2026). |
 | K05 | **Tailscale** para administração | IP público + firewall por IP; IAP | Já é o padrão da infraestrutura; 6443 e 22 fora da internet. |
 | K06 | Armazenamento: **local-path-provisioner**; evolução para **GCE PD CSI** se houver tempo | Só PD CSI | Rapidez. Limitação (volume preso ao nó) documentada. |
 | K07 | **Kustomize** para apps; **Helm** para componentes de terceiros | Helm para tudo | Legibilidade dos manifests próprios. |
@@ -148,6 +148,9 @@ Escopo mínimo: **O1–O7**. **O8** e o staging do **UtilityDev** são diferenci
 | K20 | **Tailscale SSH** para acessar os nós | Chaves SSH gerenciadas (metadata/OS Login) | Sem chaves para distribuir/rotacionar; acesso controlado pelas ACLs da tailnet; o Ansible usa o mesmo caminho. IAP fica como emergência. |
 | K21 | Auth key do Tailscale **reutilizável, pré-autorizada, com tag e validade curta** (não efêmera) | Key efêmera | Nós efêmeros são removidos da tailnet ao ficarem offline (VM parada). Com tag, os nós não expiram; a validade curta só limita novos registros com a key. |
 | K22 | **State do Terraform local**, fora do Git | Backend em bucket GCS | Operador único; o bucket seria mais um recurso a criar e sumiria com os créditos. O state contém dados sensíveis (ex.: auth key no user-data). |
+| K23 | **Gateway API com o Traefik** como proxy reverso do cluster (Service ClusterIP, 2 réplicas) | ingress-nginx (aposentado); **Gateway API do Cilium** (tentada e abandonada) | Gateway API é o sucessor oficial do Ingress. A do Cilium não alcança backends no mesmo nó do Envoy (bug aberto [cilium#47940](https://github.com/cilium/cilium/issues/47940); [incidente 002](incidentes/002-gateway-cilium-backend-mesmo-no.md)); o Traefik roda como pod comum e não usa esse caminho. |
+| K24 | **Cilium com kube-proxy replacement** (kube-proxy removido) | Manter o kube-proxy | Services em eBPF, sem milhares de regras de iptables. Mantido mesmo sem a Gateway do Cilium: funciona e é independente dela. Clusters novos já nascem sem kube-proxy (`skipPhases`); o cluster atual foi migrado no lugar (`migracao-kube-proxy.yml`). |
+| K25 | Endereços **`<app>-lab.utileasy.com.br`** | `*.lab.utileasy.com.br`; caminhos em `lab.utileasy.com.br` | Um nível de subdomínio é coberto pelo certificado grátis da Cloudflare (Universal SSL); dois níveis exigiriam o Advanced Certificate Manager (pago). Cada app fica na raiz do próprio domínio. |
 | K15 | Teardown até **15/11/2026** | Deixar expirar | Evita cobrança caso a conta seja convertida para paga; garante backup antes. |
 
 ---
@@ -159,7 +162,8 @@ Escopo mínimo: **O1–O7**. **O8** e o staging do **UtilityDev** são diferenci
 | Namespace | Conteúdo | Nó preferencial |
 |---|---|---|
 | `kube-system` | Cilium, CoreDNS, sealed-secrets, local-path | — |
-| `ingress` | ingress-nginx, cloudflared | workers |
+| `traefik` | Traefik (Gateway `lab`) | workers |
+| `cloudflared` | túnel da Cloudflare | workers |
 | `monitoring` | kube-prometheus-stack (Prometheus, Grafana, Alertmanager) | `cp-1` |
 | `utilitydev-stg` | frontend, backend, redis, postgres | workers |
 | `job-radar` | api, worker, cronjobs, postgres, n8n (bônus) | workers |
@@ -168,7 +172,7 @@ Escopo mínimo: **O1–O7**. **O8** e o staging do **UtilityDev** são diferenci
 ### 5.2 Entrada
 
 ```
-Usuário → Cloudflare (TLS) → Tunnel → cloudflared (pod) → ingress-nginx (ClusterIP) → Service → Pods
+Usuário → Cloudflare (TLS) → Tunnel → cloudflared (pod) → Traefik (Gateway API, ClusterIP) → Service → Pods
 ```
 
 - `cloudflared`: Deployment 2 réplicas com `topologySpreadConstraints` (uma por worker) — o drain de um worker não derruba a entrada.
@@ -270,7 +274,7 @@ k8s-lab/
 │   ├── cilium/
 │   ├── local-path/
 │   ├── sealed-secrets/
-│   ├── ingress-nginx/
+│   ├── traefik/
 │   ├── cloudflared/
 │   ├── monitoring/               # kube-prometheus-stack values (toleration p/ cp-1)
 │   └── argocd/                   # diferencial
@@ -332,7 +336,8 @@ App   (40%): Job Radar Fase 0     →  Job Radar Fase 1 (MVP) →  calibração 
 **Infra**
 - [ ] local-path-provisioner (StorageClass padrão).
 - [ ] Sealed Secrets.
-- [ ] ingress-nginx (ClusterIP) + cloudflared (2 réplicas) + DNS na Cloudflare.
+- [x] Proxy reverso: Gateway API com o Traefik (K23); kube-proxy substituído pelo Cilium (K24). Ver [05-entrada.md](05-entrada.md).
+- [ ] cloudflared (2 réplicas) + DNS `<app>-lab.utileasy.com.br` na Cloudflare (K25).
 - [ ] App de teste (`whoami`) publicado em `test.lab.<dominio>`.
 - [ ] kube-prometheus-stack no `cp-1`; dashboards de nós e pods.
 - **Marco (30/10):** app de teste acessível via HTTPS sem portas abertas; Grafana com métricas.

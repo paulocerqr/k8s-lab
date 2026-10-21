@@ -12,12 +12,28 @@ ipam:
 routingMode: tunnel
 tunnelProtocol: vxlan
 
-# O kubeadm instalou o kube-proxy; mantemos ele cuidando dos Services.
-# Substituí-lo pelo eBPF do Cilium é uma evolução possível (exige reinstalar sem kube-proxy).
-kubeProxyReplacement: false
+# O Cilium faz o papel do kube-proxy (Services em eBPF, sem iptables). Exigido pela
+# Gateway API do Cilium (K23). Sem kube-proxy, o próprio Cilium precisa achar o
+# API server: k8sServiceHost é passado pelo Ansible (IP do cp-1 na VPC).
+kubeProxyReplacement: true
+k8sServicePort: 6443
+
+# Só a interface da VPC. Sem isso o Cilium também usa a tailscale0: portas NodePort
+# passam a responder pelo IP da tailnet e os dois disputam marcas de pacote (fwmark).
+devices: ens4
+
+# A Gateway API do Cilium ficou desligada: o Envoy dele não alcança backends no
+# mesmo nó (issue cilium/cilium#47940, docs/incidentes/002). A entrada é o Traefik.
+gatewayAPI:
+  enabled: false
+
+rollOutCiliumPods: true
+envoy:
+  rollOutPods: true
 
 operator:
   replicas: 1
+  rollOutPods: true
 
 # Hubble: visibilidade do tráfego entre pods (fluxos, drops, políticas)
 hubble:

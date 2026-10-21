@@ -1,0 +1,66 @@
+# docs/05-entrada.md: Traefik como proxy reverso do cluster pela Gateway API (K23).
+# Executado no PC de administração, como o Cilium.
+- name: Traefik (Gateway API)
+  hosts: localhost
+  connection: local
+  gather_facts: false
+  become: false
+
+  environment:
+    KUBECONFIG: "{{ kubeconfig_local }}"
+
+  vars:
+    raiz_repo: "{{ playbook_dir }}/../.."
+    # Recursos padrão da Gateway API + os experimentais que o Traefik suporta
+    gateway_api_crds:
+      - gatewayclasses
+      - gateways
+      - httproutes
+      - referencegrants
+      - grpcroutes
+      - backendtlspolicies
+      - tlsroutes
+
+  tasks:
+    - name: CRDs da Gateway API {{ gateway_api_versao }}
+      ansible.builtin.command: >-
+        kubectl apply --server-side
+        -f https://raw.githubusercontent.com/kubernetes-sigs/gateway-api/{{ gateway_api_versao }}/config/crd/experimental/gateway.networking.k8s.io_{{ item }}.yaml
+      loop: "{{ gateway_api_crds }}"
+      changed_when: false
+
+    - name: Repositório de charts do Traefik
+      ansible.builtin.command: helm repo add traefik https://traefik.github.io/charts --force-update
+      changed_when: false
+
+    - name: Valores e versão atualmente instalados
+      ansible.builtin.shell: |
+        helm list -n traefik -f '^traefik$' -o json
+        echo '---'
+        helm get values traefik -n traefik -o json 2>/dev/null || echo '{}'
+      register: traefik_atual
+      changed_when: false
+      check_mode: false
+
+    - name: Calcular a configuração desejada
+      ansible.builtin.set_fact:
+        traefik_valores: "{{ lookup('file', raiz_repo ~ '/cluster/traefik/values.yaml') | from_yaml }}"
+        traefik_instalado_versao: >-
+          {{ (traefik_atual.stdout.split('---')[0] | from_json | map(attribute='chart') | list + [''])[0] }}
+        traefik_instalado_valores: "{{ traefik_atual.stdout.split('---')[1] | from_json }}"
+
+    - name: Instalar/atualizar o Traefik (chart {{ traefik_chart_versao }})
+      ansible.builtin.command: >-
+        helm upgrade --install traefik traefik/traefik
+        --version {{ traefik_chart_versao }}
+        --namespace traefik --create-namespace
+        -f {{ raiz_repo }}/cluster/traefik/values.yaml
+        --wait --timeout 5m
+      when: >-
+        traefik_instalado_versao != 'traefik-' ~ traefik_chart_versao
+        or traefik_instalado_valores != traefik_valores
+
+    - name: Esperar o Gateway ficar pronto
+      ansible.builtin.command: >-
+        kubectl wait -n traefik gateway/lab --for=condition=Programmed --timeout=3m
+      changed_when: false

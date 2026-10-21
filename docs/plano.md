@@ -334,8 +334,8 @@ App   (40%): Job Radar Fase 0     →  Job Radar Fase 1 (MVP) →  calibração 
 ### Semana 2 — 24/10 a 30/10
 
 **Infra**
-- [ ] local-path-provisioner (StorageClass padrão).
-- [ ] Sealed Secrets.
+- [x] local-path-provisioner (StorageClass padrão). Ver [06-plataforma.md](06-plataforma.md).
+- [x] Sealed Secrets, com cópia da chave no PC para as recriações.
 - [x] Proxy reverso: Gateway API com o Traefik (K23); kube-proxy substituído pelo Cilium (K24). Ver [05-entrada.md](05-entrada.md).
 - [ ] cloudflared (2 réplicas) + DNS `<app>-lab.utileasy.com.br` na Cloudflare (K25).
 - [ ] App de teste (`whoami`) publicado em `test.lab.<dominio>`.

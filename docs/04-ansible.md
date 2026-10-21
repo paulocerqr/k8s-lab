@@ -29,6 +29,7 @@ ansible/
     ├── 05-cilium.yml
     ├── 06-traefik.yml
     ├── 07-beszel-agent.yml
+    ├── 08-plataforma.yml          # local-path + Sealed Secrets
     └── migracao-kube-proxy.yml     # uso único: cluster antigo com kube-proxy → Cilium KPR
 ```
 
@@ -41,6 +42,7 @@ ansible/
 | `04-kubeconfig-local` | `cp-1` → PC | Passo 3 | Copia o `admin.conf` para `~/.kube/k8s-lab.conf` apontando para a tailnet |
 | `05-cilium` | PC | Passo 4 | Cilium com kube-proxy replacement (`k8sServiceHost` lido do cluster); só reinstala se versão ou valores mudarem |
 | `06-traefik` | PC | — | CRDs da Gateway API e Traefik com o Gateway `lab` ([05-entrada.md](05-entrada.md)) |
+| `08-plataforma` | PC | — | local-path (StorageClass padrão) e Sealed Secrets; guarda/restaura a chave ([06-plataforma.md](06-plataforma.md)) |
 | `07-beszel-agent` | 3 nós | — | Opcional: agent do Beszel (binário + systemd), só se as credenciais do Hub existirem |
 
 ## Como a idempotência foi garantida

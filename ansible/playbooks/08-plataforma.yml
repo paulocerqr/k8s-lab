@@ -1,0 +1,100 @@
+# docs/06-plataforma.md: volumes persistentes (local-path) e segredos cifrados no Git
+# (Sealed Secrets). Executado no PC de administração.
+- name: Plataforma (local-path e Sealed Secrets)
+  hosts: localhost
+  connection: local
+  gather_facts: false
+  become: false
+
+  environment:
+    KUBECONFIG: "{{ kubeconfig_local }}"
+
+  tasks:
+    # ---------- local-path-provisioner (K06): volumes no disco do nó
+
+    - name: local-path-provisioner {{ local_path_versao }}
+      ansible.builtin.command: >-
+        kubectl apply
+        -f https://raw.githubusercontent.com/rancher/local-path-provisioner/{{ local_path_versao }}/deploy/local-path-storage.yaml
+      register: local_path
+      changed_when: "local_path.stdout_lines | reject('search', 'unchanged') | list | length > 0"
+
+    - name: local-path já é a StorageClass padrão?
+      ansible.builtin.command:
+        argv:
+          - kubectl
+          - get
+          - storageclass
+          - local-path
+          - -o
+          - jsonpath={.metadata.annotations.storageclass\.kubernetes\.io/is-default-class}
+      register: padrao_atual
+      changed_when: false
+      check_mode: false
+
+    - name: local-path como StorageClass padrão
+      ansible.builtin.command: >-
+        kubectl annotate storageclass local-path
+        storageclass.kubernetes.io/is-default-class=true --overwrite
+      when: padrao_atual.stdout != 'true'
+
+    # ---------- Sealed Secrets (K08): segredos cifrados que podem ir para o Git
+
+    - name: Existe cópia local da chave do Sealed Secrets?
+      ansible.builtin.stat:
+        path: "{{ sealed_secrets_backup }}"
+      register: copia_chave
+
+    - name: O cluster já tem uma chave do Sealed Secrets?
+      ansible.builtin.command: >-
+        kubectl -n kube-system get secret
+        -l sealedsecrets.bitnami.com/sealed-secrets-key -o name
+      register: chave_no_cluster
+      changed_when: false
+      check_mode: false
+
+    # Só num cluster recriado (sem chave): a mesma chave abre os SealedSecrets do Git
+    - name: Restaurar a chave antes do controlador
+      ansible.builtin.command: kubectl apply -f {{ sealed_secrets_backup }}
+      when: copia_chave.stat.exists and chave_no_cluster.stdout == ''
+      no_log: true                      # o arquivo é a chave privada
+
+    # "kubectl apply" deste manifesto sempre diz "configured" (o cluster completa campos
+    # do Deployment); o "kubectl diff" compara de verdade: rc 1 = há diferença
+    - name: Controlador do Sealed Secrets {{ sealed_secrets_versao }} está atualizado?
+      ansible.builtin.command: >-
+        kubectl diff
+        -f https://github.com/bitnami-labs/sealed-secrets/releases/download/{{ sealed_secrets_versao }}/controller.yaml
+      register: diff_controlador
+      changed_when: false
+      failed_when: diff_controlador.rc > 1
+      check_mode: false
+
+    - name: Controlador do Sealed Secrets {{ sealed_secrets_versao }}
+      ansible.builtin.command: >-
+        kubectl apply
+        -f https://github.com/bitnami-labs/sealed-secrets/releases/download/{{ sealed_secrets_versao }}/controller.yaml
+      when: diff_controlador.rc == 1
+
+    - name: Esperar o controlador
+      ansible.builtin.command: >-
+        kubectl -n kube-system rollout status deployment/sealed-secrets-controller --timeout=3m
+      changed_when: false
+
+    - name: Guardar a chave no PC (primeira instalação)
+      when: not copia_chave.stat.exists
+      block:
+        - name: Pasta da cópia (só o usuário lê)
+          ansible.builtin.file:
+            path: "{{ sealed_secrets_backup | dirname }}"
+            state: directory
+            mode: "0700"
+
+        - name: Exportar a chave
+          ansible.builtin.shell: >-
+            kubectl -n kube-system get secret
+            -l sealedsecrets.bitnami.com/sealed-secrets-key=active -o yaml
+            > {{ sealed_secrets_backup }} && chmod 600 {{ sealed_secrets_backup }}
+          args:
+            creates: "{{ sealed_secrets_backup }}"
+          no_log: true

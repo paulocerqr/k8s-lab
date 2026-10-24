@@ -1,0 +1,57 @@
+# uso medido no Prometheus (4 dias, até 24/10/2026 19:20), comparado com requests/limits da época
+namespace         container                   mem máx  req mem  lim mem | cpu p95 cpu máx req cpu lim cpu
+argocd            application-controller        439Mi        -        - |     64m     69m       -       -
+argocd            redis                          10Mi        -        - |      3m      3m       -       -
+argocd            repo-server                    41Mi        -        - |      7m      9m       -       -
+argocd            server                         51Mi        -        - |      3m      3m       -       -
+cloudflared       cloudflared                    27Mi     32Mi    128Mi |      6m      7m     25m       -
+gce-pd-csi-driver csi-attacher                   14Mi        -        - |      1m      1m       -       -
+gce-pd-csi-driver csi-driver-registrar           14Mi        -        - |      2m      3m       -       -
+gce-pd-csi-driver csi-provisioner                18Mi        -        - |      3m      4m       -       -
+gce-pd-csi-driver csi-resizer                    13Mi        -        - |      4m      6m       -       -
+gce-pd-csi-driver csi-snapshotter                14Mi        -        - |      3m      4m       -       -
+gce-pd-csi-driver gce-pd-driver                  15Mi        -        - |      0m      1m       -       -
+gce-pd-csi-driver taint-controller               15Mi        -        - |      1m      2m       -       -
+job-radar         api                           108Mi    192Mi    384Mi |     21m    236m    100m       -
+job-radar         coletar                         9Mi    128Mi    256Mi |       -       -     50m       -
+job-radar         migrar                          5Mi        -        - |       -       -       -       -
+job-radar         postgres                       61Mi    256Mi    512Mi |     13m     34m    100m       -
+job-radar         seed                            2Mi        -        - |       -       -       -       -
+job-radar         worker                        380Mi    192Mi    384Mi |     53m     81m    100m       -
+traefik           traefik                        35Mi     64Mi    256Mi |      8m      8m     50m       -
+
+# worker-695f55bc-nxtrh: working set máximo por hora (Mi), 21/10 19:32 → 24/10 03:32
+135 145 150 140 153 165 169 175 179 180 186 192 197 190 197 197 206 218 222 229 230 225 239 233 251 255 260 259 265 263 276 280 275 293 295 293 306 308 315 318 324 327 331 335 341 346 350 355 359 362 360 371 377 380
+# mesmo pod: RSS máximo 136Mi, cache 4Mi → o resto é memória do kernel
+
+# 100 execuções de cada liveness dentro do pod do worker (cgroup v2, KiB)
+depois: uso=97376 anon=74724 slab_reclaimable=12333 (KiB)  — 100 execuções em 225 s
+depois: uso=97616 anon=74724 slab_reclaimable=12335 (KiB)  — 100 execuções do teste em shell em 3 s
+
+# aplicação via Argo CD
+### 2026-10-24 19:39:01 push 7a2701d; refresh do Argo CD
+### 19:40:06 Argo CD: 7a2701d Synced Healthy Succeeded
+POD                             PRONTO   REQ                          LIM                 NO
+api-6b7b665767-nrlwj            true     map[cpu:100m memory:192Mi]   map[memory:384Mi]   worker-2
+api-6c96c4ff6-c66fd             true     map[cpu:50m memory:128Mi]    map[memory:256Mi]   worker-1
+api-6c96c4ff6-zrcg7             true     map[cpu:50m memory:128Mi]    map[memory:256Mi]   worker-2
+postgres-0                      true     map[cpu:50m memory:128Mi]    map[memory:512Mi]   worker-1
+worker-7d774bb6fb-2gcm8         true     map[cpu:50m memory:128Mi]    map[memory:256Mi]   worker-1
+
+### 19:40:07 ansible-playbook playbooks/13-argocd.yml
+localhost                  : ok=6    changed=1    unreachable=0    failed=0    skipped=0    rescued=0    ignored=0   
+POD                                  PRONTO   REQ
+argocd-application-controller-0      true     map[cpu:100m memory:512Mi]
+argocd-redis-bbd865c58-22tq4         true     map[cpu:10m memory:32Mi]
+argocd-repo-server-948657d5b-zznrd   true     map[cpu:25m memory:64Mi]
+argocd-server-64d546b4c7-v5x2t       true     map[cpu:25m memory:64Mi]
+test $(( $(date +%s) - $(stat -c %Y "$WORKER_HEARTBEAT_PATH" 2>/dev/null || echo 0) )) -le 120
+
+# sonda GET /readyz a cada ~0,5 s
+      1 000
+    149 200
+     24 503
+19:39:00 200
+19:39:08 000
+19:39:09 503
+19:39:28 200

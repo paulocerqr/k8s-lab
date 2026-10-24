@@ -32,6 +32,7 @@ Mais evidências (saídas reais de cada etapa): [semana 1](docs/evidencias/seman
 | [11 — Discos gerenciados](docs/11-discos-gerenciados.md) | GCE PD CSI: o Postgres muda de nó com os dados; migração sem perda |
 | [12 — Backup](docs/12-backup.md) | `pg_dump` diário para o GCS, sem chave e sem poder apagar; restauração testada |
 | [13 — Argo CD](docs/13-argocd.md) | GitOps: app-of-apps, ondas com a migração como hook, self-heal |
+| [14 — Recursos](docs/14-recursos.md) | Requests/limites pelo uso medido; a liveness em Python que inflava a memória do worker |
 | [Incidente 001](docs/incidentes/001-cloud-init-debian-gcp.md) | Nós fora da tailnet: Debian da GCP sem cloud-init |
 | [Incidente 002](docs/incidentes/002-gateway-cilium-backend-mesmo-no.md) | Gateway API do Cilium falha para backends no mesmo nó (bug [cilium#47940](https://github.com/cilium/cilium/issues/47940)) |
 | [Evidências — semana 1](docs/evidencias/semana-1/README.md) | Saídas reais dos comandos (com imagens): Terraform, firewall, tailnet, nós, pods, Cilium, teste de rede e Ansible |

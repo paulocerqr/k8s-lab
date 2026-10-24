@@ -1,0 +1,14 @@
+# O kubeadm cria o CoreDNS com anti-afinidade só "preferida" e sem PDB: num drain, as
+# 2 réplicas podem sair juntas (aconteceu em 24/10/2026, docs/10-resiliencia.md) e o
+# DNS do cluster fica fora até uma nova subir. O PDB faz o drain esperar uma réplica
+# nova ficar pronta antes de despejar a segunda.
+apiVersion: policy/v1
+kind: PodDisruptionBudget
+metadata:
+  name: coredns
+  namespace: kube-system
+spec:
+  minAvailable: 1
+  selector:
+    matchLabels:
+      k8s-app: kube-dns

@@ -24,7 +24,11 @@ Evidências: [`evidencias/semana-4`](evidencias/semana-4/README.md).
 
 - Todos os pods (API, Traefik, cloudflared, CoreDNS, whoami) foram recriados no `worker-1`/`cp-1` em segundos.
 - O **único `502`** veio da troca do Traefik/cloudflared: uma requisição em andamento caiu na réplica que estava saindo. Para zerar isso: `preStop` com alguns segundos de espera e `terminationGracePeriodSeconds` maior no Traefik e no cloudflared (evolução).
-- **CoreDNS:** as 2 réplicas estavam no `worker-2` e não há PDB, então o drain tirou as duas juntas. Não houve efeito visível (uma nova subiu em segundos), mas é um risco real de DNS fora do ar. Evolução: PDB e espalhamento para o CoreDNS.
+- **CoreDNS:** as 2 réplicas estavam no `worker-2` e não havia PDB, então o drain tirou as duas juntas. Não houve efeito visível (uma nova subiu em segundos), mas é um risco real de DNS fora do ar. **Corrigido:** `cluster/coredns/pdb.yaml` (`minAvailable: 1`), aplicado pelo `08-plataforma.yml`. A anti-afinidade do kubeadm continua só "preferida"; o PDB é que garante que o drain espere uma réplica nova antes de tirar a segunda.
+
+### A, de novo, depois das correções
+
+Drain do `worker-2` repetido com `preStop` (API e Traefik) e PDB do CoreDNS, sonda a cada ~0,2 s: **216 de 216 respostas `200`** (antes: um `502`). Evidência: [`10-drain-worker-2-depois.txt`](evidencias/semana-4/saidas/10-drain-worker-2-depois.txt).
 
 ### B. Drain do `worker-1`: a limitação do local-path (K06)
 

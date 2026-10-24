@@ -1,0 +1,261 @@
+### 2026-10-24 03:12:07 kubectl drain worker-2 (com preStop e PDB do CoreDNS)
+node/worker-2 cordoned
+Warning: ignoring DaemonSet-managed Pods: kube-system/cilium-2l8qw, kube-system/cilium-envoy-hshzf, monitoring/kps-prometheus-node-exporter-mm76x
+evicting pod kube-system/hubble-relay-6cd684f4dc-vk4r5
+evicting pod teste/whoami-797cc697bf-2jffq
+evicting pod local-path-storage/local-path-provisioner-7c7ff4f446-fwrxd
+evicting pod teste/whoami-797cc697bf-t6gsz
+evicting pod kube-system/coredns-6588f77f95-rv8r5
+evicting pod job-radar/api-64476fd8d9-khhd7
+evicting pod cloudflared/cloudflared-7977bd6476-49cdj
+evicting pod traefik/traefik-7467457fbf-thmq5
+evicting pod kube-system/hubble-ui-7b5f75765b-tkf2k
+evicting pod kube-system/sealed-secrets-controller-68679b65fb-fppst
+pod/hubble-relay-6cd684f4dc-vk4r5 evicted
+pod/hubble-ui-7b5f75765b-tkf2k evicted
+pod/sealed-secrets-controller-68679b65fb-fppst evicted
+pod/whoami-797cc697bf-2jffq evicted
+pod/local-path-provisioner-7c7ff4f446-fwrxd evicted
+pod/cloudflared-7977bd6476-49cdj evicted
+pod/whoami-797cc697bf-t6gsz evicted
+pod/coredns-6588f77f95-rv8r5 evicted
+pod/api-64476fd8d9-khhd7 evicted
+pod/traefik-7467457fbf-thmq5 evicted
+node/worker-2 drained
+duração: 10 s
+
+### 03:12:32 uncordon + redistribuir
+node/worker-2 uncordoned
+deployment "traefik" successfully rolled out
+deployment "cloudflared" successfully rolled out
+deployment "api" successfully rolled out
+
+### 03:13:37 distribuição final
+cloudflared cloudflared-7cd878b5d6-clc2x Running worker-2
+cloudflared cloudflared-7cd878b5d6-vx69j Running worker-1
+job-radar api-79ff7c5dbc-ff75k Running worker-2
+job-radar api-79ff7c5dbc-ftxkx Running worker-1
+kube-system coredns-6588f77f95-2ntzr Running cp-1
+kube-system coredns-6588f77f95-sffqh Running worker-1
+traefik traefik-c798f57d4-q7hv5 Running worker-1
+traefik traefik-c798f57d4-wlj85 Running worker-2
+
+# sonda GET /readyz a cada ~0,2 s
+    216 200
+
+03:12:08 200
+03:12:08 200
+03:12:08 200
+03:12:09 200
+03:12:09 200
+03:12:10 200
+03:12:10 200
+03:12:11 200
+03:12:11 200
+03:12:11 200
+03:12:12 200
+03:12:12 200
+03:12:13 200
+03:12:13 200
+03:12:14 200
+03:12:14 200
+03:12:15 200
+03:12:15 200
+03:12:16 200
+03:12:16 200
+03:12:16 200
+03:12:17 200
+03:12:18 200
+03:12:18 200
+03:12:18 200
+03:12:19 200
+03:12:19 200
+03:12:20 200
+03:12:20 200
+03:12:21 200
+03:12:21 200
+03:12:22 200
+03:12:22 200
+03:12:22 200
+03:12:23 200
+03:12:23 200
+03:12:24 200
+03:12:24 200
+03:12:24 200
+03:12:25 200
+03:12:25 200
+03:12:26 200
+03:12:26 200
+03:12:26 200
+03:12:27 200
+03:12:27 200
+03:12:28 200
+03:12:28 200
+03:12:28 200
+03:12:29 200
+03:12:29 200
+03:12:30 200
+03:12:30 200
+03:12:30 200
+03:12:31 200
+03:12:31 200
+03:12:32 200
+03:12:32 200
+03:12:32 200
+03:12:33 200
+03:12:33 200
+03:12:34 200
+03:12:34 200
+03:12:34 200
+03:12:35 200
+03:12:35 200
+03:12:36 200
+03:12:36 200
+03:12:36 200
+03:12:37 200
+03:12:37 200
+03:12:38 200
+03:12:38 200
+03:12:38 200
+03:12:39 200
+03:12:39 200
+03:12:40 200
+03:12:40 200
+03:12:40 200
+03:12:41 200
+03:12:41 200
+03:12:42 200
+03:12:42 200
+03:12:42 200
+03:12:43 200
+03:12:43 200
+03:12:44 200
+03:12:44 200
+03:12:44 200
+03:12:45 200
+03:12:45 200
+03:12:46 200
+03:12:46 200
+03:12:46 200
+03:12:47 200
+03:12:47 200
+03:12:48 200
+03:12:48 200
+03:12:48 200
+03:12:49 200
+03:12:49 200
+03:12:50 200
+03:12:50 200
+03:12:50 200
+03:12:51 200
+03:12:51 200
+03:12:52 200
+03:12:52 200
+03:12:52 200
+03:12:53 200
+03:12:53 200
+03:12:54 200
+03:12:54 200
+03:12:55 200
+03:12:55 200
+03:12:56 200
+03:12:56 200
+03:12:57 200
+03:12:57 200
+03:12:57 200
+03:12:58 200
+03:12:58 200
+03:12:59 200
+03:12:59 200
+03:12:59 200
+03:13:00 200
+03:13:00 200
+03:13:01 200
+03:13:01 200
+03:13:02 200
+03:13:02 200
+03:13:02 200
+03:13:03 200
+03:13:04 200
+03:13:04 200
+03:13:04 200
+03:13:05 200
+03:13:06 200
+03:13:06 200
+03:13:07 200
+03:13:07 200
+03:13:07 200
+03:13:08 200
+03:13:08 200
+03:13:09 200
+03:13:09 200
+03:13:10 200
+03:13:10 200
+03:13:10 200
+03:13:11 200
+03:13:11 200
+03:13:12 200
+03:13:12 200
+03:13:12 200
+03:13:13 200
+03:13:13 200
+03:13:14 200
+03:13:14 200
+03:13:14 200
+03:13:15 200
+03:13:15 200
+03:13:16 200
+03:13:16 200
+03:13:16 200
+03:13:17 200
+03:13:17 200
+03:13:18 200
+03:13:18 200
+03:13:18 200
+03:13:19 200
+03:13:19 200
+03:13:20 200
+03:13:20 200
+03:13:20 200
+03:13:21 200
+03:13:21 200
+03:13:22 200
+03:13:22 200
+03:13:22 200
+03:13:23 200
+03:13:23 200
+03:13:24 200
+03:13:24 200
+03:13:24 200
+03:13:25 200
+03:13:25 200
+03:13:26 200
+03:13:26 200
+03:13:27 200
+03:13:27 200
+03:13:27 200
+03:13:28 200
+03:13:28 200
+03:13:29 200
+03:13:29 200
+03:13:29 200
+03:13:30 200
+03:13:30 200
+03:13:31 200
+03:13:31 200
+03:13:31 200
+03:13:32 200
+03:13:32 200
+03:13:33 200
+03:13:33 200
+03:13:33 200
+03:13:34 200
+03:13:34 200
+03:13:35 200
+03:13:35 200
+03:13:35 200
+03:13:36 200
+03:13:36 200
+03:13:37 200
+03:13:37 200
+03:13:37 200

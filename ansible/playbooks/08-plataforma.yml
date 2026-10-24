@@ -98,3 +98,17 @@
           args:
             creates: "{{ sealed_secrets_backup }}"
           no_log: true
+
+    # ---------- CoreDNS: PDB (o kubeadm não cria)
+
+    # o `apply` deste PDB responde "configured" mesmo sem mudança; o diff é que decide
+    - name: PDB do CoreDNS está diferente do Git?
+      ansible.builtin.command: kubectl diff -f {{ playbook_dir }}/../../cluster/coredns/pdb.yaml
+      register: pdb_coredns
+      changed_when: false
+      failed_when: pdb_coredns.rc > 1   # 0 = igual, 1 = diferente
+      check_mode: false
+
+    - name: PDB do CoreDNS
+      ansible.builtin.command: kubectl apply -f {{ playbook_dir }}/../../cluster/coredns/pdb.yaml
+      when: pdb_coredns.rc == 1

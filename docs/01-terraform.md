@@ -55,7 +55,11 @@ Declara a versão mínima do Terraform e o provider `hashicorp/google` na série
 | `google_compute_firewall.tailscale` | Regra `lab-tailscale` | UDP 41641, para o Tailscale conectar direto, sem relay |
 | `google_compute_firewall.iap_ssh` | Regra `lab-iap-ssh` | SSH **só** a partir da faixa do IAP do Google: acesso de emergência |
 | `google_service_account.nos` | Conta de serviço `k8s-lab-nos` | Identidade das VMs na GCP |
-| `google_project_iam_member.nos` | 2 permissões | Só escrita de logs e métricas (mínimo recomendado) |
+| `google_project_iam_member.nos` | 4 permissões | Escrita de logs e métricas (mínimo recomendado) + `compute.storageAdmin` e o papel customizado do PD CSI ([11](11-discos-gerenciados.md)) |
+| `google_project_iam_custom_role.pd_csi` | Papel `k8sLabPdCsi` | Anexar/desanexar discos nas VMs (4 permissões) |
+| `google_service_account_iam_member.nos_usam_a_si_mesmos` | `iam.serviceAccountUser` | A conta dos nós pode "agir como" ela mesma (exigido para anexar disco) |
+| `google_storage_bucket.backup` | Bucket `<projeto>-k8s-lab-backup` | Backup diário do Postgres, privado, apaga com 7 dias ([12](12-backup.md)) |
+| `google_storage_bucket_iam_member.nos_gravam_backup` | `storage.objectCreator` no bucket | Os nós só **criam** backups: não leem, não apagam |
 | **`google_compute_instance.no`** | **As 3 VMs** | Um único bloco com `for_each = var.nos`: o Terraform cria uma VM para cada item do mapa `nos` |
 
 Detalhes importantes do bloco das VMs:
@@ -64,6 +68,7 @@ Detalhes importantes do bloco das VMs:
 - `block-project-ssh-keys = true`: nenhuma chave SSH no metadata; o acesso é pelo Tailscale SSH (K20).
 - `shielded_instance_config` liga o Secure Boot.
 - `desired_status` usa a variável `ligado` para parar ou ligar as VMs.
+- `lifecycle { ignore_changes = [attached_disk] }`: os discos dos PVCs são anexados pelo Kubernetes (PD CSI). Sem isso, um `apply` **desanexaria o disco do Postgres** com o banco rodando ([12-backup.md](12-backup.md#achado-o-terraform-ia-desanexar-o-disco-do-postgres)).
 
 ### `bootstrap.sh.tftpl`: o que acontece dentro da VM
 
@@ -141,10 +146,18 @@ google_compute_instance.no["worker-1"]
 google_compute_instance.no["worker-2"]
 google_compute_network.lab
 google_compute_subnetwork.nos
+google_project_iam_custom_role.pd_csi
+google_project_iam_member.nos["projects/<projeto>/roles/k8sLabPdCsi"]
+google_project_iam_member.nos["roles/compute.storageAdmin"]
 google_project_iam_member.nos["roles/logging.logWriter"]
 google_project_iam_member.nos["roles/monitoring.metricWriter"]
 google_service_account.nos
+google_service_account_iam_member.nos_usam_a_si_mesmos
+google_storage_bucket.backup
+google_storage_bucket_iam_member.nos_gravam_backup
 ```
+
+> Mudanças de IAM e o bucket (24/10/2026) foram aplicadas pelo dono do projeto: o plano foi revisado aqui e o `apply` rodado por ele.
 
 ## Operações do dia a dia
 

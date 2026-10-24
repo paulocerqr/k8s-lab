@@ -29,7 +29,11 @@ ansible/
     ├── 05-cilium.yml
     ├── 06-traefik.yml
     ├── 07-beszel-agent.yml
-    ├── 08-plataforma.yml          # local-path + Sealed Secrets
+    ├── 08-plataforma.yml          # local-path + Sealed Secrets + PDB do CoreDNS
+    ├── 09-cloudflared.yml         # túnel da Cloudflare
+    ├── 10-monitoramento.yml       # kube-prometheus-stack
+    ├── 12-discos.yml              # GCE PD CSI + StorageClass pd-balanced
+    ├── 13-argocd.yml              # Argo CD + Application raiz (o Job Radar vem do Git)
     └── migracao-kube-proxy.yml     # uso único: cluster antigo com kube-proxy → Cilium KPR
 ```
 
@@ -42,7 +46,11 @@ ansible/
 | `04-kubeconfig-local` | `cp-1` → PC | Passo 3 | Copia o `admin.conf` para `~/.kube/k8s-lab.conf` apontando para a tailnet |
 | `05-cilium` | PC | Passo 4 | Cilium com kube-proxy replacement (`k8sServiceHost` lido do cluster); só reinstala se versão ou valores mudarem |
 | `06-traefik` | PC | — | CRDs da Gateway API e Traefik com o Gateway `lab` ([05-entrada.md](05-entrada.md)) |
-| `08-plataforma` | PC | — | local-path (StorageClass padrão) e Sealed Secrets; guarda/restaura a chave ([06-plataforma.md](06-plataforma.md)) |
+| `08-plataforma` | PC | — | local-path (StorageClass padrão) e Sealed Secrets; guarda/restaura a chave; PDB do CoreDNS ([06-plataforma.md](06-plataforma.md)) |
+| `12-discos` | PC | — | GCE PD CSI driver e StorageClass `pd-balanced` ([11-discos-gerenciados.md](11-discos-gerenciados.md)) |
+| `09-cloudflared` | PC | — | Conector do túnel, token como SealedSecret ([07-cloudflare-tunnel.md](07-cloudflare-tunnel.md)) |
+| `10-monitoramento` | PC | — | kube-prometheus-stack no `cp-1` ([08-observabilidade.md](08-observabilidade.md)) |
+| `13-argocd` | PC | — | Argo CD e a Application raiz; daí em diante o Job Radar é aplicado pelo Argo CD a partir do Git ([13-argocd.md](13-argocd.md)) |
 | `07-beszel-agent` | 3 nós | — | Opcional: agent do Beszel (binário + systemd), só se as credenciais do Hub existirem |
 
 ## Como a idempotência foi garantida

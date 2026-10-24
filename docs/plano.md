@@ -16,7 +16,7 @@
 | Produção existente | Servidor doméstico (UtilityDev, n8n) | O lab **não depende** da produção e **não altera** a produção. |
 | Job Radar | Ainda não implementado; MVP estimado em ~1–1,5 semana | **App principal do lab**, desenvolvido em trilha paralela ao cluster (§7, §8). |
 | VMs existentes (`serverk3s`, worker) | Paradas; só com Beszel agent | **Serão excluídas** e recriadas pelo Terraform (K12). |
-| UtilityDev | Sem imagens publicadas | Staging vira **bônus** (semana 4), só se sobrar tempo. |
+| UtilityDev | Sem imagens publicadas | Staging vira **bônus** (semana 4), só se sobrar tempo. **Descartado em 24/10/2026.** |
 | Tempo disponível | 3–4 h/dia (~25 h/semana) | Duas trilhas: ~60% infra / ~40% Job Radar nas semanas 1–2. |
 | Créditos AWS | ~US$ 115, validade ~80 dias (~05/01/2027) | Ponte pós-GCP para o Job Radar (§9). |
 
@@ -48,7 +48,7 @@ Mesmo assim: **budget alert** em 50%, 80% e 100% do saldo.
 | O8 | Entrega contínua | GitHub Actions → GHCR → ArgoCD |
 | O9 | Encerramento documentado | Backup, evidências, `terraform destroy` |
 
-Escopo mínimo: **O1–O7**. **O8** e o staging do **UtilityDev** são diferenciais.
+Escopo mínimo: **O1–O7**. **O8** e o staging do **UtilityDev** são diferenciais (o UtilityDev foi descartado em 24/10/2026).
 
 ---
 
@@ -137,11 +137,11 @@ Escopo mínimo: **O1–O7**. **O8** e o staging do **UtilityDev** são diferenci
 | K08 | **Sealed Secrets** | SOPS, External Secrets | Commitável no Git, sem dependências externas. |
 | K09 | **Beszel nos hosts + kube-prometheus-stack no cluster** | Só um dos dois | Beszel já existe e cobre hosts; Prometheus cobre pods, control plane e apps. |
 | K10 | Monitoring no `cp-1` via toleration | Monitoring nos workers | Aproveita 14 GB ociosos do control plane; workers ficam livres para apps. |
-| K11 | **App principal: Job Radar**; staging do UtilityDev como bônus | UtilityDev primeiro | Job Radar nasce pronto para Kubernetes (12-factor, health, migrations separadas, CronJob) e não toca produção; UtilityDev exige containerizar um sistema em produção. MVP cabe em ~1–1,5 semana. |
+| K11 | **App principal: Job Radar**; staging do UtilityDev como bônus | UtilityDev primeiro | Job Radar nasce pronto para Kubernetes (12-factor, health, migrations separadas, CronJob) e não toca produção; UtilityDev exige containerizar um sistema em produção. MVP cabe em ~1–1,5 semana. | *Bônus descartado em 24/10/2026.*
 | K12 | **Excluir as VMs do console e recriar tudo via Terraform** | `terraform import` das existentes | Não há estado a preservar (só o Beszel agent); nomes e config ficam padronizados; um único caminho reproduzível. |
 | K13 | Lab **isolado da produção**: n8n próprio, banco próprio, bot/chat de Telegram próprios | Reaproveitar serviços de casa | Falha no lab não afeta produção e vice-versa. |
 | K14 | Imagens no **GHCR** | Artifact Registry | Sobrevive ao fim dos créditos. Pacotes privados exigem `imagePullSecret` (SealedSecret) no cluster. |
-| K16 | (Bônus) Containerizar o UtilityDev **num branch/PR do próprio repo**, sem mudar a produção | Dockerfiles só no k8s-lab | Imagem pertence ao app; produção segue no compose atual. |
+| K16 | (Bônus) Containerizar o UtilityDev **num branch/PR do próprio repo**, sem mudar a produção | Dockerfiles só no k8s-lab | Imagem pertence ao app; produção segue no compose atual. | *Descartado em 24/10/2026.*
 | K17 | **startup-script** (via Terraform) para bootstrap mínimo + **Ansible** para configuração dos nós | Só Ansible; cloud-init; configuração manual | O startup-script coloca a VM na tailnet no boot (as imagens Debian da GCP não têm cloud-init; ver incidente 001) (resolve o acesso SSH sem porta pública); Ansible orquestra a ordem `init` → `join` e é idempotente. VMs serão recriadas várias vezes (erro, fallback k3s, ponte AWS); playbooks do Beszel/Tailscale reaproveitáveis em outros hosts. |
 | K18 | **Manual primeiro, automatizar depois**: kubeadm feito à mão uma vez com anotações, depois convertido em playbooks | Escrever playbooks antes de entender os passos | Aprendizado (CKA) e cumprimento do marco de 20/10 sem depender da automação pronta. |
 | K19 | **VPC própria** (`lab`, subnet `10.10.0.0/24`) | VPC `default` | A `default` libera SSH/RDP/ICMP para `0.0.0.0/0`; uma VPC dedicada começa fechada e é destruída junto com o lab. |
@@ -197,7 +197,7 @@ Conforme `docs/PLANO.md` §3.3 do repo `job-radar`:
 
 Somente providers de IA via API (Groq/NVIDIA/Gemini) no cluster. Bot/chat de Telegram próprios do lab (K13).
 
-### 5.4 UtilityDev staging (bônus)
+### 5.4 UtilityDev staging (bônus — descartado em 24/10/2026)
 
 | Recurso | Tipo | Detalhes |
 |---|---|---|
@@ -228,70 +228,35 @@ Somente providers de IA via API (Groq/NVIDIA/Gemini) no cluster. Bot/chat de Tel
 
 ```
 k8s-lab/
-├── README.md                     # visão geral, diagrama, como reproduzir, custos reais, limitações
-├── Makefile                      # infra | cluster | plataforma | apps | backup | destruir
+├── README.md                       # visão geral, arquitetura, números, índice da documentação
+├── terraform/                      # rede, firewall, 3 VMs, IAM mínimo, bucket de backup (01)
+│   ├── main.tf · variables.tf · outputs.tf · versions.tf
+│   ├── bootstrap.sh.tftpl          # startup-script: usuário admin + Tailscale (incidente 001)
+│   └── terraform.tfvars.example    # sem IDs reais no Git
+├── ansible/                        # o cluster do zero, idempotente (04)
+│   ├── site.yml                    # 00 → 06, 08, 12, 09, 10, 13, 07
+│   ├── group_vars/all/main.yml     # versões fixas
+│   ├── templates/kubeadm-config.yaml.j2
+│   └── playbooks/                  # 00-base … 13-argocd, migracao-kube-proxy (uso único)
+├── cluster/                        # plataforma, aplicada pelo Ansible
+│   ├── cilium/ · traefik/ · cloudflared/ · monitoring/
+│   ├── pd-csi/                     # GCE PD CSI + StorageClass pd-balanced (11)
+│   ├── coredns/                    # PDB (10)
+│   ├── argocd/                     # values do chart (13)
+│   └── teste/                      # whoami
+├── argocd/                         # GitOps (13)
+│   ├── raiz.yaml                   # app-of-apps, aplicada pelo playbook 13
+│   └── apps/                       # job-radar.yaml, teste.yaml
+├── apps/job-radar/                 # kustomization: Postgres, migração (hook), API, worker, CronJobs, backup (09)
 ├── docs/
-│   ├── 00-arquitetura.md
-│   ├── 01-terraform.md           # VMs, firewall, budget
-│   ├── 02-tailscale.md           # ACLs, SANs do apiserver, kubectl remoto
-│   ├── 03-kubeadm.md             # passo a passo + problemas encontrados
-│   ├── 04-cilium.md
-│   ├── 05-storage.md
-│   ├── 06-cloudflare-tunnel.md
-│   ├── 07-observabilidade.md     # Beszel (hosts) + Prometheus/Grafana (cluster)
-│   ├── 08-job-radar.md
-│   ├── 09-resiliencia.md         # drain, kill de pod, PDB — com evidências
-│   ├── 10-gitops.md              # diferencial
-│   ├── 11-utilitydev-staging.md  # bônus
-│   ├── 12-encerramento.md        # backup, custos finais, destroy, lições
-│   ├── decisoes/                 # ADRs K01..K15
-│   ├── incidentes/               # mesmo formato do beszel-infra
-│   └── img/
-├── terraform/
-│   ├── versions.tf               # provider google fixado
-│   ├── main.tf                   # VMs, firewall, (opcional) Cloud NAT
-│   ├── variables.tf
-│   ├── outputs.tf
-│   └── terraform.tfvars.example  # sem IDs reais no Git
-│   └── bootstrap.sh.tftpl        # startup-script: usuário admin + Tailscale (tag:k8s-lab, SSH)
-├── ansible/
-│   ├── ansible.cfg
-│   ├── inventory.example.ini     # hosts por nome MagicDNS do Tailscale; grupos control_plane / workers
-│   ├── group_vars/
-│   │   ├── all.yml               # versões fixadas (kubernetes, containerd, cilium, beszel)
-│   │   └── all.vault.yml         # ansible-vault: tokens Beszel (não versionar sem cifrar)
-│   ├── site.yml                  # importa os playbooks na ordem
-│   └── playbooks/
-│       ├── 00-base.yml           # pacotes, swap off, sysctl, módulos, containerd (SystemdCgroup)
-│       ├── 01-beszel-agent.yml   # binário + systemd; reutilizável fora do lab
-│       ├── 02-kubeadm-pacotes.yml# repo pkgs.k8s.io, kubeadm/kubelet/kubectl com hold
-│       ├── 03-kubeadm-init.yml   # init no control_plane (SANs da tailnet) + Cilium + busca join command
-│       ├── 04-kubeadm-join.yml   # join dos workers usando o comando capturado
-│       └── 05-kubeconfig.yml     # copia admin.conf para o CachyOS, apontando ao nome da tailnet
-├── notas/
-│   └── kubeadm-manual.md         # registro da instalação manual (K18) — fonte dos playbooks
-├── cluster/                      # plataforma (Helm values + Kustomize)
-│   ├── cilium/
-│   ├── local-path/
-│   ├── sealed-secrets/
-│   ├── traefik/
-│   ├── cloudflared/
-│   ├── monitoring/               # kube-prometheus-stack values (toleration p/ cp-1)
-│   └── argocd/                   # diferencial
-├── apps/
-│   ├── job-radar/
-│   │   ├── base/
-│   │   └── overlays/
-│   │       ├── gcp/
-│   │       └── aws/              # ponte pós-créditos em k3s (ver §9)
-│   └── utilitydev-stg/           # bônus
-│       ├── base/
-│       └── overlays/gcp/
-└── scripts/
-    ├── kubeconfig.sh             # obtém admin.conf via Tailscale
-    ├── demo-drain.sh             # roteiro da demonstração de resiliência
-    └── backup.sh                 # pg_dump dos bancos do lab
+│   ├── 00-ferramentas … 14-recursos.md
+│   ├── evidencias/semana-1 … semana-4/   # saídas reais dos comandos
+│   └── incidentes/                 # 001 (cloud-init), 002 (Gateway API do Cilium)
+├── notas/kubeadm-manual/           # instalação manual (K18), fonte dos playbooks
+└── scripts/                        # captura de evidências
 ```
+
+O desenho inicial previa `Makefile`, overlays por nuvem e ADRs em arquivos separados; ficaram de fora: os playbooks cumprem o papel do `Makefile`, as decisões estão na tabela do §4 e o overlay AWS depende da ponte pós-créditos (§9).
 
 **Higiene de publicação** (lições do `beszel-infra`): nenhum IP real, ID de projeto, e-mail de service account, usuário SSH ou caminho de chave no Git — usar `*.example` e variáveis. Revisar histórico antes de tornar público.
 
@@ -369,12 +334,15 @@ App   (40%): Job Radar Fase 0     →  Job Radar Fase 1 (MVP) →  calibração 
 - [x] ArgoCD (app-of-apps): Job Radar e whoami sincronizados do Git, ondas com a migração como hook, self-heal. Ver [13-argocd.md](13-argocd.md) (24/10).
 - [x] CI do Job Radar atualizando a tag da imagem no k8s-lab (deploy key, `github-actions[bot]`): merge → versão no ar em ~6 min, sem erro. Ver [13-argocd.md](13-argocd.md#deploy-ponta-a-ponta-do-merge-ao-cluster) (24/10).
 - [x] Ajuste de requests/limits pelo uso medido no Prometheus; liveness do worker em shell (inflava a memória em ~115 Mi/dia). Ver [14-recursos.md](14-recursos.md) (24/10). *Conferir o worker estável em 24 h.*
-- [ ] (Bônus) UtilityDev staging (§5.4, K16).
-- [ ] Documentação `docs/00..12`, prints revisados, custo real consumido.
+- [x] ~~(Bônus) UtilityDev staging (§5.4, K16).~~ Descartado em 24/10/2026: o foco ficou no Job Radar.
+- [x] Documentação `docs/00..14` revisada (24/10): README, Terraform, Ansible, estrutura do repositório, evidências das 4 semanas. *Custo real consumido: no encerramento (§7).*
 
 ### Encerramento — 14/11 a 15/11
 - [ ] Backup final do Postgres do Job Radar exportado para fora da GCP (vai para a ponte AWS, §9): disparar um backup manual e baixar do bucket com `gcloud storage cp` **antes** do destroy (o bucket é apagado junto). Ver [12-backup.md](12-backup.md).
-- [ ] Prints/gravações finais; custo total registrado.
+- [ ] (Opcional, se houver tempo antes) Repetir a recriação do zero com o `site.yml` completo (túnel, monitoramento, PD CSI, Argo CD) e registrar o tempo; exige auth key nova do Tailscale e, por causa do banco, o backup baixado antes.
+- [ ] Prints/gravações finais; **custo total registrado** (console → Faturamento → Relatórios, filtro do projeto) no README.
+- [ ] Revogar a deploy key do k8s-lab (*Settings → Deploy keys*) e apagar o secret `K8S_LAB_DEPLOY_KEY` do job-radar; desligar o job `atualizar-lab` no CI (sem cluster, ele só gera commits sem efeito).
+- [ ] Apagar o PVC antigo `dados-postgres-0` (local-path, plano de volta da migração) se ainda existir.
 - [ ] Remover agents do lab do Beszel Hub; remover nós da tailnet; apagar registros DNS e o tunnel.
 - [ ] **Discos do PD CSI antes do destroy:** a StorageClass `pd-balanced` usa `Retain`, então o `terraform destroy` **não** apaga esses discos (o Terraform não os conhece). Depois do backup final: `kubectl get pv` → mudar cada PV `pd-balanced` para `Delete` e apagar os PVCs; conferir com `gcloud compute disks list --filter="name~^pvc-"` (lista vazia) e apagar o que sobrar com `gcloud compute disks delete <nome> --zone us-central1-a`. Ver [11-discos-gerenciados.md](11-discos-gerenciados.md).
 - [ ] `terraform destroy`; conferir no console que não restaram discos, IPs ou snapshots.

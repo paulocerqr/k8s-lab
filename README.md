@@ -1,77 +1,107 @@
 # k8s-lab
 
-Cluster Kubernetes autogerenciado (kubeadm) em 3 VMs na Google Cloud, montado do zero com Terraform e Ansible, acessado só pela tailnet (Tailscale) e publicado sem portas abertas (Cloudflare Tunnel). A aplicação principal é o [Job Radar](https://github.com/paulocerqr/job-radar).
+Cluster Kubernetes autogerenciado (kubeadm) em 3 VMs na Google Cloud, montado do zero com Terraform e Ansible, acessado só pela tailnet (Tailscale), publicado sem portas abertas (Cloudflare Tunnel) e com deploy por GitOps (Argo CD). A aplicação principal é o [Job Radar](https://github.com/paulocerqr/job-radar), no ar em **https://jobradar-lab.utileasy.com.br**.
 
-**Status:** semana 3 de 4 concluída. Cluster de 3 nós (Kubernetes 1.37.1, Cilium 1.20.3 sem kube-proxy), **recriável do zero em ≈ 6 min** com Terraform + Ansible. O Job Radar roda no cluster e está público em https://jobradar-lab.utileasy.com.br (Cloudflare Tunnel → Traefik), com coleta por CronJob, auditoria por IA e notificações no Telegram. Próximo: demonstrações de resiliência (drain, rollout e rollback).
+**Status (24/10/2026):** semanas 1 a 4 concluídas; falta o encerramento (até 15/11, créditos expiram em 16/11).
 
-| Do zero ao cluster pronto | Tempo |
+## Em números
+
+| | |
 |---|---|
-| `terraform apply` (rede, firewall, 3 VMs) | 123 s |
-| Nós na tailnet | 20 s |
-| `ansible-playbook site.yml` | 217 s |
+| Do zero ao cluster pronto (Terraform + Ansible, sem passo manual) | **≈ 6 min** (medido em 19/10, antes das etapas de plataforma) |
+| Do merge no Job Radar à versão nova no ar (CI → commit do bot → Argo CD) | **≈ 6 min**, 478 de 478 respostas `200` durante o deploy |
+| Rollouts e drain do `worker-2` depois do `preStop` | **0 erros** (378 e 216 requisições) |
+| Drain do `worker-1` (onde está o banco) | `503` por **36 s** com disco gerenciado (antes: 77 s, preso ao nó) |
+| Backup do Postgres | Diário no GCS, **restauração testada**; o cluster não consegue apagar backups (403) |
+| Memória reservada pelo Job Radar após medir o uso real | 832 Mi → **512 Mi** |
 
-![kubectl get nodes](docs/evidencias/semana-1/img/07-kubectl-nodes.png)
+## Arquitetura
 
-Mais evidências (saídas reais de cada etapa): [semana 1](docs/evidencias/semana-1/README.md), [semana 2](docs/evidencias/semana-2/saidas), [semana 3](docs/evidencias/semana-3/README.md). Plano completo, decisões e cronograma: [`docs/plano.md`](docs/plano.md).
+```
+                          internet
+                             │ HTTPS (certificado da Cloudflare)
+                             ▼
+                        Cloudflare ══ túnel (conexões de saída) ══╗
+                                                                   ║
+  GCP · VPC própria · nenhuma porta de entrada aberta              ║
+ ┌───────────────────────────────────────────────────────────────╨───────────┐
+ │ cp-1 (4 vCPU/16 GB)          worker-1 (2/8)            worker-2 (2/8)      │
+ │ control plane                cloudflared ─► Traefik (Gateway API)          │
+ │ Prometheus/Grafana           api · worker · Postgres ─► disco PD (10 GB)   │
+ │ Argo CD                      CronJobs: coleta, backup ─► bucket GCS         │
+ │                   Cilium (sem kube-proxy) · Sealed Secrets                 │
+ └────────────────────────────────────────────────────────────────────────────┘
+        ▲ kubectl / SSH pela tailnet (Tailscale)        ▲ Argo CD lê o Git (k8s-lab)
+     administração                                   CI do Job Radar atualiza a tag
+```
+
+| Camada | Escolha | Documento |
+|---|---|---|
+| Infraestrutura | Terraform: VPC, firewall, 3 VMs Debian 13, IAM mínimo, bucket | [01](docs/01-terraform.md) |
+| Acesso | Tailscale (SSH e API do Kubernetes pela tailnet); IAP de emergência | [02](docs/02-acesso-tailscale.md) |
+| Cluster | kubeadm 1.37, containerd 2.4, Cilium 1.20 com kube-proxy replacement | [03](docs/03-kubeadm.md), [05](docs/05-entrada.md) |
+| Automação | Ansible idempotente (`site.yml`) | [04](docs/04-ansible.md) |
+| Entrada | Traefik pela Gateway API + Cloudflare Tunnel | [05](docs/05-entrada.md), [07](docs/07-cloudflare-tunnel.md) |
+| Segredos | Sealed Secrets (cifrados no Git) | [06](docs/06-plataforma.md) |
+| Armazenamento | local-path (Prometheus) e GCE PD CSI (Postgres) | [06](docs/06-plataforma.md), [11](docs/11-discos-gerenciados.md) |
+| Observabilidade | kube-prometheus-stack no `cp-1` | [08](docs/08-observabilidade.md) |
+| Deploy | Argo CD (app-of-apps) + CI do Job Radar | [13](docs/13-argocd.md) |
 
 ## Documentação
 
 | Documento | Conteúdo |
 |---|---|
-| [00 — Ferramentas](docs/00-ferramentas.md) | O que é cada ferramenta (gcloud, Terraform, Ansible, kubectl, Helm, Tailscale) e como foi instalada |
-| [01 — Terraform](docs/01-terraform.md) | Cada arquivo do Terraform, o que cria as VMs e a rede, comandos executados |
+| [00 — Ferramentas](docs/00-ferramentas.md) | O que é cada ferramenta e como foi instalada |
+| [01 — Terraform](docs/01-terraform.md) | Cada arquivo e recurso, IAM, comandos executados |
 | [02 — Acesso pelo Tailscale](docs/02-acesso-tailscale.md) | Tag, auth key, registro automático dos nós e SSH |
-| [03 — Cluster com kubeadm](docs/03-kubeadm.md) | Preparação dos nós, `init`, `kubectl` pela tailnet, Cilium, `join`, teste de rede e problemas encontrados |
-| [04 — Ansible](docs/04-ansible.md) | Playbooks, idempotência e o teste de recriação do zero (tempos) |
+| [03 — Cluster com kubeadm](docs/03-kubeadm.md) | Instalação manual passo a passo e problemas encontrados |
+| [04 — Ansible](docs/04-ansible.md) | Playbooks, idempotência e o teste de recriação do zero |
 | [05 — Entrada do cluster](docs/05-entrada.md) | Cilium no lugar do kube-proxy; Traefik pela Gateway API |
-| [06 — Plataforma](docs/06-plataforma.md) | Volumes persistentes (local-path) e segredos cifrados no Git (Sealed Secrets) |
-| [07 — Cloudflare Tunnel](docs/07-cloudflare-tunnel.md) | Publicação em HTTPS sem portas abertas; token como Sealed Secret; rotas |
-| [08 — Observabilidade](docs/08-observabilidade.md) | Prometheus, Alertmanager e Grafana no `cp-1`; o que é coletado |
-| [09 — Job Radar](docs/09-job-radar.md) | O app no cluster: Postgres, API, worker, CronJobs; problemas do primeiro deploy |
-| [10 — Resiliência](docs/10-resiliencia.md) | Drain de cada worker medido de fora: API sem queda num, banco preso ao nó no outro |
-| [11 — Discos gerenciados](docs/11-discos-gerenciados.md) | GCE PD CSI: o Postgres muda de nó com os dados; migração sem perda |
-| [12 — Backup](docs/12-backup.md) | `pg_dump` diário para o GCS, sem chave e sem poder apagar; restauração testada |
-| [13 — Argo CD](docs/13-argocd.md) | GitOps: app-of-apps, ondas com a migração como hook, self-heal |
-| [14 — Recursos](docs/14-recursos.md) | Requests/limites pelo uso medido; a liveness em Python que inflava a memória do worker |
-| [Incidente 001](docs/incidentes/001-cloud-init-debian-gcp.md) | Nós fora da tailnet: Debian da GCP sem cloud-init |
-| [Incidente 002](docs/incidentes/002-gateway-cilium-backend-mesmo-no.md) | Gateway API do Cilium falha para backends no mesmo nó (bug [cilium#47940](https://github.com/cilium/cilium/issues/47940)) |
-| [Evidências — semana 1](docs/evidencias/semana-1/README.md) | Saídas reais dos comandos (com imagens): Terraform, firewall, tailnet, nós, pods, Cilium, teste de rede e Ansible |
-| [Evidências — semana 2](docs/evidencias/semana-2/saidas) | Entrada, plataforma, Cloudflare Tunnel e observabilidade |
-| [Evidências — semana 3](docs/evidencias/semana-3/README.md) | Job Radar no cluster: pods, API pública, coleta, auditoria e Telegram |
-| [Evidências — semana 4](docs/evidencias/semana-4/README.md) | Drain dos workers com sonda pública |
+| [06 — Plataforma](docs/06-plataforma.md) | local-path e Sealed Secrets |
+| [07 — Cloudflare Tunnel](docs/07-cloudflare-tunnel.md) | Publicação em HTTPS sem portas abertas |
+| [08 — Observabilidade](docs/08-observabilidade.md) | Prometheus, Alertmanager e Grafana |
+| [09 — Job Radar](docs/09-job-radar.md) | O app no cluster e os problemas do primeiro deploy |
+| [10 — Resiliência](docs/10-resiliencia.md) | Drain, rollout/rollback e kill de pods medidos de fora; `preStop`; trava do worker |
+| [11 — Discos gerenciados](docs/11-discos-gerenciados.md) | GCE PD CSI e a migração do Postgres sem perda |
+| [12 — Backup](docs/12-backup.md) | `pg_dump` diário no GCS; restauração testada; o Terraform que ia desanexar o disco |
+| [13 — Argo CD](docs/13-argocd.md) | GitOps: app-of-apps, ondas, migração como hook, deploy ponta a ponta |
+| [14 — Recursos](docs/14-recursos.md) | Requests/limites pelo uso medido; a liveness que inflava a memória |
+| [Plano](docs/plano.md) | Objetivos, decisões (K01–K25), cronograma e checklist de encerramento |
 
-## Arquitetura (resumo)
+**Incidentes:** [001 — Debian da GCP sem cloud-init](docs/incidentes/001-cloud-init-debian-gcp.md) · [002 — Gateway API do Cilium com backend no mesmo nó](docs/incidentes/002-gateway-cilium-backend-mesmo-no.md) (bug [cilium#47940](https://github.com/cilium/cilium/issues/47940)).
 
-| Nó | Máquina | Papel |
-|---|---|---|
-| `cp-1` | e2-standard-4 (4 vCPU / 16 GB) | control plane + Prometheus/Grafana |
-| `worker-1` | e2-standard-2 (2 vCPU / 8 GB) | aplicações |
-| `worker-2` | e2-standard-2 (2 vCPU / 8 GB) | aplicações |
+**Evidências** (saídas reais dos comandos): [semana 1](docs/evidencias/semana-1/README.md) (Terraform, Ansible, nós) · [semana 2](docs/evidencias/semana-2/README.md) (entrada, túnel, monitoramento) · [semana 3](docs/evidencias/semana-3/README.md) (Job Radar no cluster) · [semana 4](docs/evidencias/semana-4/README.md) (resiliência, discos, backup, Argo CD, recursos).
 
-- **Rede:** VPC própria; nenhuma porta de entrada aberta para a internet. Entre os nós, só a subnet do lab.
-- **Acesso:** Tailscale SSH e `kubectl` pela tailnet; IAP como emergência.
-- **Publicação:** Cloudflare Tunnel → Traefik (Gateway API) → serviços; segredos cifrados no Git (Sealed Secrets).
-- **Observabilidade:** Beszel nos hosts + kube-prometheus-stack no cluster.
+![kubectl get nodes](docs/evidencias/semana-1/img/07-kubectl-nodes.png)
 
-## Pré-requisitos
+## O que deu errado (e virou aprendizado)
 
-- `gcloud`, `terraform`, `ansible`, `kubectl`, `helm`
-- Projeto GCP com faturamento (créditos) e a Compute Engine API habilitada
-- Tailscale na máquina de administração, com `tag:k8s-lab` configurada nas ACLs
+| Problema | O que ensinou |
+|---|---|
+| Debian da GCP sem cloud-init: nós fora da tailnet | Conferir o que a imagem realmente suporta (`startup-script`) |
+| Gateway API do Cilium sem resposta para backend no mesmo nó | Isolar a falha até virar um bug reproduzível; trocar de ferramenta quando o prazo pede |
+| `502` em toda troca de pods | Corrida entre `SIGTERM` e remoção dos endpoints; `preStop` |
+| `Recreate` não impede 2 workers num delete de pod | Garantia de instância única é do app (trava no Postgres), não da estratégia de deploy |
+| Terraform ia desanexar o disco do Postgres | Cada campo com um só dono (`ignore_changes`); ler o `plan` sempre |
+| Memória do worker crescendo 115 Mi/dia | Métrica ≠ processo: o `working_set` incluía cache do kernel gerado pela liveness |
+| Argo CD `OutOfSync` para sempre | Valores padrão do servidor; comparação pelo servidor (`ServerSideDiff`) |
 
-## Subindo a infraestrutura
+## Reproduzindo
+
+Pré-requisitos: `gcloud`, `terraform`, `ansible`, `kubectl`, `helm`, `kubeseal`; projeto GCP com faturamento e Compute Engine API; Tailscale com `tag:k8s-lab` nas ACLs; a cópia da chave do Sealed Secrets em `~/.config/k8s-lab/` (sem ela, os SealedSecrets do Git precisam ser recriados).
 
 ```bash
 gcloud auth application-default login
-cd terraform
-cp terraform.tfvars.example terraform.tfvars   # preencha projeto e auth key
-terraform init
-terraform plan
-terraform apply
+cd terraform && cp terraform.tfvars.example terraform.tfvars   # projeto e auth key do Tailscale
+terraform init && terraform plan -out plano && terraform apply plano
+cd ../ansible && ansible-playbook site.yml                      # cluster, plataforma e Argo CD
+# o Argo CD aplica o Job Radar a partir do Git
 ```
 
-Nada sensível vai para o Git: `terraform.tfvars`, state, kubeconfig e `.env` estão no `.gitignore`.
+Nada sensível vai para o Git: `terraform.tfvars`, state, kubeconfig, tokens e a chave do Sealed Secrets ficam fora (`.gitignore` e `~/.config/k8s-lab/`, permissão `600`).
+
+> O teste de recriação do zero foi feito em 19/10, antes de túnel, monitoramento, PD CSI e Argo CD entrarem no `site.yml`; repeti-lo com tudo é um item do encerramento.
 
 ## Créditos e encerramento
 
-O lab roda com créditos temporários que expiram em **16/11/2026**. O encerramento (backup, evidências e `terraform destroy`) está no plano, seção 7.
+O lab roda com créditos que expiram em **16/11/2026**. O checklist de encerramento ([plano §7](docs/plano.md)) cobre o backup final, o custo real consumido, os discos do PD CSI (que o `terraform destroy` não apaga) e a conferência no console.

@@ -122,7 +122,7 @@ A versão do `kubectl` deve ficar a no máximo uma versão *minor* de distância
 
 ## 5. Helm
 
-**O que é:** gerenciador de pacotes do Kubernetes. Instala aplicações de terceiros empacotadas em *charts* (Cilium, ingress-nginx, cert-manager, Prometheus...), com um arquivo `values.yaml` para personalizar.
+**O que é:** gerenciador de pacotes do Kubernetes. Instala aplicações de terceiros empacotadas em *charts* (Cilium, Traefik, Argo CD, Prometheus...), com um arquivo `values.yaml` para personalizar.
 
 ```bash
 sudo pacman -S --needed helm

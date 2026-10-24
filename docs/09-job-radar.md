@@ -9,7 +9,7 @@ O [Job Radar](https://github.com/paulocerqr/job-radar) roda no lab com a mesma i
                   coletar-gupy (1/h) · coletar-github (2/2h)
                               │ grava vagas
                               ▼
-https://jobradar-lab ──► Traefik ──► api (2 réplicas) ──► Postgres (StatefulSet, 5 GB local-path)
+https://jobradar-lab ──► Traefik ──► api (2 réplicas) ──► Postgres (StatefulSet, 10 GB pd-balanced)
                                                              ▲
             Telegram ◄── worker (1 réplica, Recreate) ───────┘
                          alimenta a fila, audita com IA (Groq → NVIDIA → Gemini),
@@ -18,7 +18,7 @@ https://jobradar-lab ──► Traefik ──► api (2 réplicas) ──► Pos
 
 | Recurso | Tipo | Detalhes |
 |---|---|---|
-| `postgres` | StatefulSet + Service | `postgres:16-alpine`, volume de 5 GB; só aceita conexões do próprio Job Radar (NetworkPolicy) |
+| `postgres` | StatefulSet + Service | `postgres:16-alpine`, disco gerenciado de 10 GB que muda de nó ([11](11-discos-gerenciados.md)); só aceita conexões do próprio Job Radar (NetworkPolicy); backup diário no GCS ([12](12-backup.md)) |
 | `migrar` | Job (hook do Argo CD) | `job-radar migrar` (init) + `job-radar seed`; recriado a cada sincronização, depois do Postgres e antes de API/worker |
 | `api` | Deployment (2) + Service + PDB + HTTPRoute | `/healthz` (liveness) e `/readyz` (readiness: banco acessível); `jobradar-lab.utileasy.com.br` |
 | `worker` | Deployment (1, `Recreate`) | Scheduler + polling do Telegram: nunca 2 ao mesmo tempo (D16); liveness pelo heartbeat |

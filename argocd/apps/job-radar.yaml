@@ -3,6 +3,11 @@ kind: Application
 metadata:
   name: job-radar
   namespace: argocd
+  annotations:
+    # compara pelo servidor da API, que conhece os valores padrão (volumeMode dos
+    # templates de volume do StatefulSet, group/kind no parentRefs do HTTPRoute...);
+    # sem isso esses objetos aparecem OutOfSync para sempre
+    argocd.argoproj.io/compare-options: ServerSideDiff=true
   # apagar a Application NÃO apaga os recursos do app (sem finalizer de cascata):
   # proteção do banco contra um engano no Git
 spec:

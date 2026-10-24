@@ -1,0 +1,35 @@
+### 2026-10-24 18:29:53 CronJob
+NAME              SCHEDULE    TIMEZONE            SUSPEND   ACTIVE   LAST SCHEDULE   AGE
+backup-postgres   0 3 * * *   America/Sao_Paulo   False     0        <none>          8s
+
+### 18:29:54 backup manual: kubectl create job --from=cronjob/backup-postgres
+job.batch/backup-manual created
+job.batch/backup-manual condition met
+NAME            STATUS     COMPLETIONS   DURATION   AGE
+backup-manual   Complete   1/1           7s         8s
+--- dump
+dump: 249049 bytes, 13 tabelas com dados
+--- enviar
+enviado: jobradar-20261024T212959Z.dump (249049 bytes)
+
+### 18:30:16 objetos no bucket
+    249049  2026-10-24T21:29:59Z  gs://<bucket>/jobradar-20261024T212959Z.dump
+TOTAL: 1 objects, 249049 bytes (243.21kiB)
+
+### 18:30:19 baixar jobradar-20261024T212959Z.dump
+.....
+
+### 18:30:22 restaurar no banco temporário restore_teste
+restore ok
+produção:     alembic_version=1 auditoria=6 canal_notificacao=1 execucao_coleta=62 fonte=4 historico_status=30 perfil=1 provider_ia=3 uso_provider=1 usuario=1 vaga=131 vaga_fonte=135 vaga_usuario=18
+restaurado:   alembic_version=1 auditoria=6 canal_notificacao=1 execucao_coleta=61 fonte=4 historico_status=30 perfil=1 provider_ia=3 uso_provider=1 usuario=1 vaga=131 vaga_fonte=135 vaga_usuario=18
+DIFERENÇA: execucao_coleta 62 x 61 → o CronJob coletar-github (18:30) gravou 1 linha depois do backup (18:29:59); as outras 12 tabelas iguais
+banco temporário apagado
+
+### 18:30:45 com o token da VM, de dentro de um pod: apagar e sobrescrever jobradar-20261024T212959Z.dump
+apagar:       HTTP 403
+sobrescrever: HTTP 403
+ler:          HTTP 403
+--- conferência do objeto depois das tentativas
+    249049  2026-10-24T21:29:59Z  gs://<bucket>/jobradar-20261024T212959Z.dump
+TOTAL: 1 objects, 249049 bytes (243.21kiB)

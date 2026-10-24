@@ -15,6 +15,7 @@ resources:
   - api.yaml
   - worker.yaml
   - cronjobs.yaml
+  - backup.yaml
   - networkpolicy.yaml
 images:
   - name: ghcr.io/paulocerqr/job-radar

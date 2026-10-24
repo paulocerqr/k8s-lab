@@ -357,9 +357,9 @@ App   (40%): Job Radar Fase 0     →  Job Radar Fase 1 (MVP) →  calibração 
 - [x] Demonstrações: `kubectl drain worker-1`, kill de pod, rollout e rollback, CronJob executando — gravar evidências. Ver [10-resiliencia.md](10-resiliencia.md) e [evidências da semana 4](evidencias/semana-4/README.md) (24/10).
 - [x] Correções que saíram das demonstrações: `preStop` na API e no Traefik (0 erros em rollouts), PDB do CoreDNS, trava de worker único no Postgres (Job Radar `ef93791`).
 - [x] Postgres em disco gerenciado (GCE PD CSI): drain do `worker-1` de 77 s para 36 s de `503`, sem depender do nó voltar. Ver [11-discos-gerenciados.md](11-discos-gerenciados.md) (24/10).
-- [ ] Backup do Postgres (CronJob → bucket GCS ou cópia via Tailscale).
+- [x] Backup do Postgres: CronJob diário → bucket GCS (só criação de objetos, 7 dias), restauração testada. Ver [12-backup.md](12-backup.md) (24/10).
 - [x] ~~Se o MVP atrasar: publicar só `api` + `migrar` + Postgres ou usar `podinfo` + Postgres como substituto.~~ Não foi preciso: o MVP entrou completo.
-- **Marco (06/11):** Job Radar no cluster, recomendações chegando no Telegram do lab, sobrevivendo ao drain de um worker. ✅ **cumprido em 24/10** (falta só o backup do Postgres).
+- **Marco (06/11):** Job Radar no cluster, recomendações chegando no Telegram do lab, sobrevivendo ao drain de um worker. ✅ **cumprido em 24/10**.
 
 **App**
 - [x] Calibração do prompt/score com vagas reais; ajustes de pré-filtro (Fase 1, bloco 4).
@@ -372,7 +372,7 @@ App   (40%): Job Radar Fase 0     →  Job Radar Fase 1 (MVP) →  calibração 
 - [ ] Documentação `docs/00..12`, prints revisados, custo real consumido.
 
 ### Encerramento — 14/11 a 15/11
-- [ ] Backup final do Postgres do Job Radar exportado para fora da GCP (vai para a ponte AWS, §9).
+- [ ] Backup final do Postgres do Job Radar exportado para fora da GCP (vai para a ponte AWS, §9): disparar um backup manual e baixar do bucket com `gcloud storage cp` **antes** do destroy (o bucket é apagado junto). Ver [12-backup.md](12-backup.md).
 - [ ] Prints/gravações finais; custo total registrado.
 - [ ] Remover agents do lab do Beszel Hub; remover nós da tailnet; apagar registros DNS e o tunnel.
 - [ ] **Discos do PD CSI antes do destroy:** a StorageClass `pd-balanced` usa `Retain`, então o `terraform destroy` **não** apaga esses discos (o Terraform não os conhece). Depois do backup final: `kubectl get pv` → mudar cada PV `pd-balanced` para `Delete` e apagar os PVCs; conferir com `gcloud compute disks list --filter="name~^pvc-"` (lista vazia) e apagar o que sobrar com `gcloud compute disks delete <nome> --zone us-central1-a`. Ver [11-discos-gerenciados.md](11-discos-gerenciados.md).

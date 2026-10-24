@@ -7,3 +7,7 @@ output "acesso" {
   description = "Como acessar (depois que o nó aparecer na tailnet)."
   value       = "ssh ${var.usuario_admin}@<nó>  # Tailscale SSH; emergência: gcloud compute ssh <nó> --tunnel-through-iap"
 }
+
+output "bucket_backup" {
+  value = google_storage_bucket.backup.name
+}

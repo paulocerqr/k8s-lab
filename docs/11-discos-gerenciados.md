@@ -32,6 +32,8 @@ O script oficial do driver também dá `roles/editor` ao projeto; aqui não. **R
 
 > O `terraform apply` foi feito pelo dono do projeto: mudanças de IAM ficam fora do que o assistente executa sozinho.
 
+> ⚠️ Com discos anexados pelo driver, as VMs precisam de `lifecycle { ignore_changes = [attached_disk] }` no Terraform; sem isso, um apply desanexa o disco do Postgres. Descoberto no apply seguinte: [12-backup.md](12-backup.md#achado-o-terraform-ia-desanexar-o-disco-do-postgres).
+
 ### Escolhas da StorageClass
 
 - **`WaitForFirstConsumer`**: o disco só é criado quando o pod é agendado, na zona do nó. Disco de zona só anexa em VM da mesma zona.

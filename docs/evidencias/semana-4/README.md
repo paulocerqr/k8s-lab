@@ -18,3 +18,4 @@ Saídas reais de 24/10/2026. Explicação e conclusões: [10-resiliencia.md](../
 | [`saidas/12-pd-teste-troca-de-no.txt`](saidas/12-pd-teste-troca-de-no.txt) | Disco do PD CSI criado (21 s) e levado do `worker-1` ao `worker-2` (20 s) com os dados |
 | [`saidas/13-migracao-postgres.txt`](saidas/13-migracao-postgres.txt) | Migração do Postgres para o `pd-balanced`: dump, troca do volume, restore, contagens iguais |
 | [`saidas/14-drain-worker-1-depois.txt`](saidas/14-drain-worker-1-depois.txt) | Drain do `worker-1` com o PD CSI: Postgres vai para o `worker-2`, `503` por 36 s |
+| [`saidas/15-backup-postgres.txt`](saidas/15-backup-postgres.txt) | Backup manual para o GCS, restauração num banco temporário e 403 ao tentar apagar/sobrescrever/ler de dentro do cluster |

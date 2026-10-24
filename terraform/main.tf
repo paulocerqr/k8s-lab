@@ -162,4 +162,38 @@ resource "google_compute_instance" "no" {
   }
 
   allow_stopping_for_update = true
+
+  lifecycle {
+    # discos dos PVCs são anexados pelo GCE PD CSI driver, fora do Terraform; sem isto
+    # o próximo apply desanexaria o disco do Postgres com o banco rodando
+    ignore_changes = [attached_disk]
+  }
+}
+
+# ---------- backup do Postgres do Job Radar (docs/12-backup.md)
+# CronJob diário envia pg_dump para cá com a conta dos nós. Só "criar objetos": quem
+# invadir o cluster consegue gravar, mas não apagar nem sobrescrever backups antigos.
+
+resource "google_storage_bucket" "backup" {
+  name                        = "${var.projeto}-k8s-lab-backup" # nome global: prefixo do projeto
+  location                    = var.regiao
+  storage_class               = "STANDARD"
+  uniform_bucket_level_access = true
+  public_access_prevention    = "enforced"
+  # o backup final é baixado antes do encerramento (plano §7); depois disso o destroy
+  # precisa conseguir apagar o bucket com o que restar dentro
+  force_destroy = true
+
+  lifecycle_rule {
+    condition { age = 7 } # dias
+    action { type = "Delete" }
+  }
+
+  labels = local.rotulos
+}
+
+resource "google_storage_bucket_iam_member" "nos_gravam_backup" {
+  bucket = google_storage_bucket.backup.name
+  role   = "roles/storage.objectCreator"
+  member = "serviceAccount:${google_service_account.nos.email}"
 }

@@ -30,6 +30,7 @@ Mais evidências (saídas reais de cada etapa): [semana 1](docs/evidencias/seman
 | [09 — Job Radar](docs/09-job-radar.md) | O app no cluster: Postgres, API, worker, CronJobs; problemas do primeiro deploy |
 | [10 — Resiliência](docs/10-resiliencia.md) | Drain de cada worker medido de fora: API sem queda num, banco preso ao nó no outro |
 | [11 — Discos gerenciados](docs/11-discos-gerenciados.md) | GCE PD CSI: o Postgres muda de nó com os dados; migração sem perda |
+| [12 — Backup](docs/12-backup.md) | `pg_dump` diário para o GCS, sem chave e sem poder apagar; restauração testada |
 | [Incidente 001](docs/incidentes/001-cloud-init-debian-gcp.md) | Nós fora da tailnet: Debian da GCP sem cloud-init |
 | [Incidente 002](docs/incidentes/002-gateway-cilium-backend-mesmo-no.md) | Gateway API do Cilium falha para backends no mesmo nó (bug [cilium#47940](https://github.com/cilium/cilium/issues/47940)) |
 | [Evidências — semana 1](docs/evidencias/semana-1/README.md) | Saídas reais dos comandos (com imagens): Terraform, firewall, tailnet, nós, pods, Cilium, teste de rede e Ansible |

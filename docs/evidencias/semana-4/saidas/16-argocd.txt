@@ -1,0 +1,47 @@
+### 2026-10-24 18:47:59 ansible-playbook playbooks/13-argocd.yml
+localhost                  : ok=6    changed=3    unreachable=0    failed=0    skipped=0    rescued=0    ignored=0   
+duração: 71 s
+NAME READY STATUS NODE
+argocd-application-controller-0 1/1 Running cp-1
+argocd-redis-5d574c58d6-mfmhv 1/1 Running cp-1
+argocd-redis-secret-init-bhf5v 0/1 Completed cp-1
+argocd-repo-server-bddb95758-ghjj6 1/1 Running cp-1
+argocd-server-dbdc6dd94-gsvs9 1/1 Running cp-1
+
+### esperando as Applications sincronizarem
+18:49:17
+APP         SYNC        SAUDE     OPERACAO    REVISAO
+job-radar   OutOfSync   Healthy   Running     74a107fad3f52c4f5826775bd29998a5b6abec7d
+raiz        Synced      Healthy   Succeeded   74a107fad3f52c4f5826775bd29998a5b6abec7d
+teste       Synced      Healthy   Succeeded   74a107fad3f52c4f5826775bd29998a5b6abec7d
+
+### 18:50:28 self-heal: kubectl scale deploy/api --replicas=1 (mudança fora do Git)
+deployment.apps/api scaled
+### réplicas de volta a 2 em 1.2 s, pelo Argo CD
+NAME   READY   UP-TO-DATE   AVAILABLE   AGE
+api    1/2     2            1           3d
+
+### 18:51:33 sync completo forçado: hook de migração na onda 0
+NAME     STATUS     COMPLETIONS   DURATION   AGE
+migrar   Complete   1/1           10s        29s
+{"argocd.argoproj.io/hook":"Sync"
+"argocd.argoproj.io/hook-delete-policy":"BeforeHookCreation"
+"argocd.argoproj.io/sync-wave":"0"
+"argocd.argoproj.io/tracking-id":"job-radar:batch/Job:job-radar/migrar"
+\"metadata\":{\"annotations\":{\"argocd.argoproj.io/hook\":\"Sync\"
+\"argocd.argoproj.io/hook-delete-policy\":\"BeforeHookCreation\"
+\"argocd.argoproj.io/sync-wave\":\"0\"
+\"argocd.argoproj.io/tracking-id\":\"job-radar:batch/Job:job-radar/migrar\"}
+\"finalizers\":[\"argocd.argoproj.io/hook-finalizer\"]
+
+### 18:51:34 Applications
+APP         SYNC     SAUDE     REVISAO
+job-radar   Synced   Healthy   0f0b1e4ca23b9757c898f657e71c4820b55a1bf7
+raiz        Synced   Healthy   0f0b1e4ca23b9757c898f657e71c4820b55a1bf7
+teste       Synced   Healthy   74a107fad3f52c4f5826775bd29998a5b6abec7d
+
+### recursos no argocd (todos no cp-1)
+argocd-application-controller-0 Running cp-1
+argocd-redis-5d574c58d6-mfmhv Running cp-1
+argocd-repo-server-bddb95758-ghjj6 Running cp-1
+argocd-server-dbdc6dd94-gsvs9 Running cp-1

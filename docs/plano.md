@@ -366,7 +366,8 @@ App   (40%): Job Radar Fase 0     →  Job Radar Fase 1 (MVP) →  calibração 
 - [x] Correções que surgiram no deploy: `enableServiceLinks`, espalhamento das réplicas, modelo da NVIDIA, trava do worker. *Recursos: ajuste fino na semana 4.*
 
 ### Semana 4 — 07/11 a 13/11 · Diferenciais e documentação
-- [ ] ArgoCD (app-of-apps) com CI do Job Radar atualizando a tag da imagem.
+- [x] ArgoCD (app-of-apps): Job Radar e whoami sincronizados do Git, ondas com a migração como hook, self-heal. Ver [13-argocd.md](13-argocd.md) (24/10).
+- [ ] CI do Job Radar atualizando a tag da imagem no k8s-lab.
 - [ ] Ajuste de requests/limits a partir do Grafana.
 - [ ] (Bônus) UtilityDev staging (§5.4, K16).
 - [ ] Documentação `docs/00..12`, prints revisados, custo real consumido.

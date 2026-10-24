@@ -19,3 +19,4 @@ Saídas reais de 24/10/2026. Explicação e conclusões: [10-resiliencia.md](../
 | [`saidas/13-migracao-postgres.txt`](saidas/13-migracao-postgres.txt) | Migração do Postgres para o `pd-balanced`: dump, troca do volume, restore, contagens iguais |
 | [`saidas/14-drain-worker-1-depois.txt`](saidas/14-drain-worker-1-depois.txt) | Drain do `worker-1` com o PD CSI: Postgres vai para o `worker-2`, `503` por 36 s |
 | [`saidas/15-backup-postgres.txt`](saidas/15-backup-postgres.txt) | Backup manual para o GCS, restauração num banco temporário e 403 ao tentar apagar/sobrescrever/ler de dentro do cluster |
+| [`saidas/16-argocd.txt`](saidas/16-argocd.txt) | Argo CD instalado, apps sincronizadas, self-heal em 1,2 s, hook de migração na onda 0 |

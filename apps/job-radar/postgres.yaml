@@ -58,8 +58,8 @@ spec:
             initialDelaySeconds: 30
             periodSeconds: 20
           resources:
-            requests: {cpu: 100m, memory: 256Mi}
-            limits: {memory: 512Mi}
+            requests: {cpu: 50m, memory: 128Mi}   # medido: 61 Mi, CPU p95 13m (docs/14-recursos.md)
+            limits: {memory: 512Mi}               # folga: o cache do banco cresce com os dados
           volumeMounts:
             - name: dados-pd
               mountPath: /var/lib/postgresql/data

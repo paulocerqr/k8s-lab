@@ -34,14 +34,20 @@ spec:
             - configMapRef: {name: job-radar}
             - secretRef: {name: job-radar}
           livenessProbe:                  # heartbeat gravado pelo scheduler a cada 30 s
+            # em shell, sem subir o Python: o `job-radar worker-saude` levava ~2 s de CPU
+            # por execução e deixava ~80 KB de cache do kernel (dentries) contados na
+            # memória do container a cada minuto, ~115 Mi/dia (docs/14-recursos.md)
             exec:
-              command: ["job-radar", "worker-saude"]
+              command:
+                - sh
+                - -c
+                - test $(( $(date +%s) - $(stat -c %Y "$WORKER_HEARTBEAT_PATH" 2>/dev/null || echo 0) )) -le 120
             initialDelaySeconds: 60
             periodSeconds: 60
             timeoutSeconds: 15
           resources:
-            requests: {cpu: 100m, memory: 192Mi}
-            limits: {memory: 384Mi}
+            requests: {cpu: 50m, memory: 128Mi}   # medido: ~75 Mi típico, 136 Mi máx (docs/14-recursos.md)
+            limits: {memory: 256Mi}
           securityContext:
             allowPrivilegeEscalation: false
             readOnlyRootFilesystem: true

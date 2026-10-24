@@ -24,3 +24,22 @@ notifications:
 # ApplicationSet não é usado: as apps são arquivos em argocd/apps (app-of-apps)
 applicationSet:
   replicas: 0
+
+# Requests/limites a partir do uso medido (docs/14-recursos.md); sem request, o pod é
+# BestEffort e o primeiro a ser despejado se o nó ficar sem memória.
+controller:
+  resources:
+    requests: {cpu: 100m, memory: 512Mi}   # medido: 439 Mi, CPU p95 64m
+    limits: {memory: 1Gi}
+repoServer:
+  resources:
+    requests: {cpu: 25m, memory: 64Mi}     # medido: 41 Mi
+    limits: {memory: 256Mi}
+server:
+  resources:
+    requests: {cpu: 25m, memory: 64Mi}     # medido: 51 Mi
+    limits: {memory: 256Mi}
+redis:
+  resources:
+    requests: {cpu: 10m, memory: 32Mi}     # medido: 10 Mi
+    limits: {memory: 128Mi}

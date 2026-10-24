@@ -166,3 +166,19 @@ worker-544fcdd959-zl7h5   1/1   Running       ← novo: já fazendo polling
 Nessa janela existem 2 workers: dois pollings do mesmo bot (o Telegram responde `409 Conflict` a um deles) e dois schedulers (auditoria/notificação podem rodar em dobro). Desta vez não houve efeito visível, mas a garantia do D16 **não é dada pelo Kubernetes**.
 
 Correção certa (no Job Radar, não no cluster): **trava no Postgres** (`pg_try_advisory_lock`) para o worker só começar a agendar e fazer polling quando for o único dono da trava. É o mesmo padrão de *leader election* que os controladores do Kubernetes usam.
+
+## Correção: trava no Postgres (Job Radar `ef93791`)
+
+O Job Radar ganhou uma trava de worker único ([PR #13](https://github.com/paulocerqr/job-radar/pull/13)): um *advisory lock* do Postgres preso a uma conexão dedicada. O worker só agenda os jobs e começa o polling do Telegram depois de obter a trava; se o processo morre, a conexão fecha e o Postgres solta a trava sozinho (keepalive de 30 s para o caso de o nó cair sem fechar a conexão).
+
+Mesmo teste, `kubectl delete pod` no worker ([`11-trava-do-worker.txt`](evidencias/semana-4/saidas/11-trava-do-worker.txt)):
+
+```
+03:22:51  worker-...-cz9zp  Terminating   ← antigo, ainda com a trava
+          worker-...-r7bsj  Running       ← novo:
+06:22:51.688 outro worker está com a trava; aguardando ele encerrar
+06:22:56.697 trava do worker obtida
+06:22:56.997 polling do Telegram iniciado
+```
+
+Os 2 pods continuam existindo juntos por alguns segundos (isso o Kubernetes não muda), mas **só um trabalha**: o novo espera ~5 s e assume. A garantia do D16 passou a ser do app, não da estratégia de deploy.

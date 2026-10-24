@@ -1,0 +1,34 @@
+### 03:22:48 kubectl delete pod/worker-756fdb965c-cz9zp (imagem ef93791, com trava)
+pod "worker-756fdb965c-cz9zp" deleted from job-radar namespace
+--- 03:22:51
+worker-756fdb965c-cz9zp 1/1 Terminating
+worker-756fdb965c-r7bsj 1/1 Running
+--- 03:22:55
+worker-756fdb965c-r7bsj 1/1 Running
+--- 03:22:59
+worker-756fdb965c-r7bsj 1/1 Running
+--- 03:23:02
+worker-756fdb965c-r7bsj 1/1 Running
+--- 03:23:06
+worker-756fdb965c-r7bsj 1/1 Running
+--- 03:23:09
+worker-756fdb965c-r7bsj 1/1 Running
+--- 03:23:13
+worker-756fdb965c-r7bsj 1/1 Running
+--- 03:23:17
+worker-756fdb965c-r7bsj 1/1 Running
+--- 03:23:20
+worker-756fdb965c-r7bsj 1/1 Running
+--- 03:23:24
+worker-756fdb965c-r7bsj 1/1 Running
+--- 03:23:27
+worker-756fdb965c-r7bsj 1/1 Running
+--- 03:23:31
+worker-756fdb965c-r7bsj 1/1 Running
+
+### logs do antigo e do novo
+novo: pod/worker-756fdb965c-r7bsj
+06:22:51.688 outro worker está com a trava; aguardando ele encerrar
+06:22:56.697 trava do worker obtida
+06:22:56.997 polling do Telegram iniciado
+06:22:56.997 worker iniciado

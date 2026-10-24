@@ -15,3 +15,6 @@ Saídas reais de 24/10/2026. Explicação e conclusões: [10-resiliencia.md](../
 | [`saidas/09-kill-de-pods.txt`](saidas/09-kill-de-pods.txt) | Kill de API (normal e forçado), Postgres e worker; 2 workers ao mesmo tempo |
 | [`saidas/10-drain-worker-2-depois.txt`](saidas/10-drain-worker-2-depois.txt) | Drain do `worker-2` repetido após `preStop` e PDB do CoreDNS: 216 de 216 `200` |
 | [`saidas/11-trava-do-worker.txt`](saidas/11-trava-do-worker.txt) | Com a trava no Postgres: o worker novo espera o antigo soltar antes de trabalhar |
+| [`saidas/12-pd-teste-troca-de-no.txt`](saidas/12-pd-teste-troca-de-no.txt) | Disco do PD CSI criado (21 s) e levado do `worker-1` ao `worker-2` (20 s) com os dados |
+| [`saidas/13-migracao-postgres.txt`](saidas/13-migracao-postgres.txt) | Migração do Postgres para o `pd-balanced`: dump, troca do volume, restore, contagens iguais |
+| [`saidas/14-drain-worker-1-depois.txt`](saidas/14-drain-worker-1-depois.txt) | Drain do `worker-1` com o PD CSI: Postgres vai para o `worker-2`, `503` por 36 s |

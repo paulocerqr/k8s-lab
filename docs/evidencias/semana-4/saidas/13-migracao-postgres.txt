@@ -1,0 +1,54 @@
+### 2026-10-24 03:37:10 parar quem grava
+deployment.apps/worker scaled
+cronjob.batch/coletar-gupy patched
+cronjob.batch/coletar-github patched
+pod/worker-756fdb965c-r7bsj condition met
+
+### 03:37:24 contagem antes
+alembic_version=1 auditoria=6 canal_notificacao=1 execucao_coleta=45 fonte=4 historico_status=30 perfil=1 provider_ia=3 uso_provider=1 usuario=1 vaga=131 vaga_fonte=135 vaga_usuario=18
+
+### 03:37:25 pg_dump
+-rw------- 250523
+backup: ~/.config/k8s-lab/jobradar-antes-pd-20261024-0337.dump
+
+### 03:37:47 PV antigo (pvc-c1153118-6d3e-41a9-baf8-43f842cb2e4f) em Retain: plano de volta
+persistentvolume/pvc-c1153118-6d3e-41a9-baf8-43f842cb2e4f patched
+
+### 03:37:48 recriar o StatefulSet com o volume novo (Job Radar fora do ar a partir daqui)
+statefulset.apps "postgres" deleted from job-radar namespace
+pod/postgres-0 condition met
+statefulset.apps/postgres created
+pod/postgres-0 condition met
+postgres-0 pronto em 21 s, banco vazio
+NAME                  STATUS   VOLUME                                     CAPACITY   ACCESS MODES   STORAGECLASS   VOLUMEATTRIBUTESCLASS   AGE
+dados-pd-postgres-0   Bound    pvc-e2a83f75-4d30-46e0-9fb1-d95c6dcbffcd   10Gi       RWO            pd-balanced    <unset>                 20s
+dados-postgres-0      Bound    pvc-c1153118-6d3e-41a9-baf8-43f842cb2e4f   5Gi        RWO            local-path     <unset>                 2d9h
+NAME READY NODE
+postgres-0 1/1 worker-1
+
+### 03:38:22 pg_restore
+restore ok
+
+### 03:38:24 contagem depois
+alembic_version=1 auditoria=6 canal_notificacao=1 execucao_coleta=45 fonte=4 historico_status=30 perfil=1 provider_ia=3 uso_provider=1 usuario=1 vaga=131 vaga_fonte=135 vaga_usuario=18
+CONTAGENS IGUAIS
+
+### 03:38:37 religar pelo Git: ansible-playbook playbooks/11-job-radar.yml
+localhost                  : ok=5    changed=1    unreachable=0    failed=0    skipped=2    rescued=0    ignored=0   
+
+### 03:38:49 conferência
+readyz público: 200
+CRONJOB          SUSPENSO
+coletar-github   true
+coletar-gupy     true
+NAME READY STATUS NODE
+api-5dbf57c7bf-2cbvp 1/1 Running worker-1
+api-5dbf57c7bf-stv4j 1/1 Running worker-2
+postgres-0 1/1 Running worker-1
+worker-756fdb965c-dkd7k 1/1 Running worker-2
+06:38:45 Job "job_expirar (trigger: interval[1:00:00], next run at: 2026-10-24 04:38:44 -03)" execu
+06:38:45 Job "job_alimentar_fila (trigger: interval[0:10:00], next run at: 2026-10-24 03:48:44 -03)
+06:38:45 Job "job_auditar (trigger: interval[0:01:00], next run at: 2026-10-24 03:39:44 -03)" execu
+CRONJOB          SUSPENSO   AGENDA
+coletar-github   false      30 8-20/2 * * *
+coletar-gupy     false      0 8-20 * * *

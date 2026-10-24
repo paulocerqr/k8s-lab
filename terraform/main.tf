@@ -59,9 +59,8 @@ resource "google_compute_firewall" "iap_ssh" {
   }
 }
 
-# ---------- identidade dos nós: só os papéis mínimos recomendados para VMs
-# (escrita de logs e métricas). Outros papéis entram quando algo precisar
-# (ex.: GCE PD CSI driver na Fase E).
+# ---------- identidade dos nós: papéis mínimos recomendados para VMs (logs e
+# métricas) + o necessário para o GCE PD CSI driver (docs/11-discos-gerenciados.md)
 
 resource "google_service_account" "nos" {
   account_id   = "k8s-lab-nos"
@@ -69,11 +68,40 @@ resource "google_service_account" "nos" {
 }
 
 resource "google_project_iam_member" "nos" {
-  for_each = toset(["roles/logging.logWriter", "roles/monitoring.metricWriter"])
+  for_each = toset([
+    "roles/logging.logWriter",
+    "roles/monitoring.metricWriter",
+    "roles/compute.storageAdmin", # PD CSI: criar, apagar e redimensionar discos
+    # id montado à mão: o for_each precisa da chave já no plan
+    "projects/${var.projeto}/roles/k8sLabPdCsi",
+  ])
 
   project = var.projeto
   role    = each.value
   member  = "serviceAccount:${google_service_account.nos.email}"
+
+  depends_on = [google_project_iam_custom_role.pd_csi]
+}
+
+# PD CSI: anexar/desanexar discos nas VMs. O script oficial do driver também dá
+# roles/editor ao projeto; aqui fica só o papel customizado que ele define.
+resource "google_project_iam_custom_role" "pd_csi" {
+  role_id = "k8sLabPdCsi"
+  title   = "k8s-lab: GCE PD CSI driver"
+  permissions = [
+    "compute.instances.get",
+    "compute.instances.attachDisk",
+    "compute.instances.detachDisk",
+    "compute.disks.get",
+  ]
+}
+
+# Anexar um disco a uma VM exige poder "agir como" a conta de serviço dela.
+# Escopo: só a própria conta dos nós, não todas as contas do projeto.
+resource "google_service_account_iam_member" "nos_usam_a_si_mesmos" {
+  service_account_id = google_service_account.nos.name
+  role               = "roles/iam.serviceAccountUser"
+  member             = "serviceAccount:${google_service_account.nos.email}"
 }
 
 # ---------- VMs

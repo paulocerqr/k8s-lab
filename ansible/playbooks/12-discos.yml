@@ -1,0 +1,39 @@
+# docs/11-discos-gerenciados.md: GCE PD CSI driver e StorageClass pd-balanced.
+# Pré-requisito: permissões da conta dos nós (terraform/main.tf).
+- name: Discos gerenciados (GCE PD CSI)
+  hosts: localhost
+  connection: local
+  gather_facts: false
+  become: false
+
+  environment:
+    KUBECONFIG: "{{ kubeconfig_local }}"
+
+  vars:
+    pasta: "{{ playbook_dir }}/../../cluster/pd-csi"
+
+  tasks:
+    # sem o namespace, o `kubectl diff` abaixo falha na primeira execução
+    - name: Namespace do driver
+      ansible.builtin.command: kubectl apply -f {{ pasta }}/namespace.yaml
+      register: ns
+      changed_when: "'unchanged' not in ns.stdout"
+
+    - name: Driver está diferente do Git?
+      ansible.builtin.command: kubectl diff -k {{ pasta }}
+      register: diferenca
+      changed_when: false
+      failed_when: diferenca.rc > 1   # 0 = igual, 1 = diferente
+      check_mode: false
+
+    - name: Aplicar driver e StorageClass
+      ansible.builtin.command: kubectl apply -k {{ pasta }}
+      when: diferenca.rc == 1
+
+    - name: Esperar o controlador
+      ansible.builtin.command: kubectl -n gce-pd-csi-driver rollout status deployment/csi-gce-pd-controller --timeout=5m
+      changed_when: false
+
+    - name: Esperar o plugin em todos os nós
+      ansible.builtin.command: kubectl -n gce-pd-csi-driver rollout status daemonset/csi-gce-pd-node --timeout=5m
+      changed_when: false

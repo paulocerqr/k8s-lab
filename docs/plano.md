@@ -132,7 +132,7 @@ Escopo mínimo: **O1–O7**. **O8** e o staging do **UtilityDev** são diferenci
 | K03 | **Cloudflare Tunnel** para entrada pública | hostPort + IP estático; CCM + LB da GCP | Sem portas abertas, sem IP fixo, TLS na borda, DNS já na Cloudflare. Resolve a ausência de LoadBalancer fora do GKE. |
 | K04 | ~~ingress-nginx~~ → substituída pela K23 | — | O projeto ingress-nginx foi aposentado (sem manutenção, inclusive de segurança, desde mar/2026). |
 | K05 | **Tailscale** para administração | IP público + firewall por IP; IAP | Já é o padrão da infraestrutura; 6443 e 22 fora da internet. |
-| K06 | Armazenamento: **local-path-provisioner**; evolução para **GCE PD CSI** se houver tempo | Só PD CSI | Rapidez. Limitação (volume preso ao nó) documentada. |
+| K06 | Armazenamento: **local-path-provisioner**; **GCE PD CSI** para o Postgres desde 24/10/2026 | Só PD CSI | Rapidez no início. A limitação (volume preso ao nó) foi medida (77 s de `503` num drain) e resolvida com o PD CSI: docs/11-discos-gerenciados.md. |
 | K07 | **Kustomize** para apps; **Helm** para componentes de terceiros | Helm para tudo | Legibilidade dos manifests próprios. |
 | K08 | **Sealed Secrets** | SOPS, External Secrets | Commitável no Git, sem dependências externas. |
 | K09 | **Beszel nos hosts + kube-prometheus-stack no cluster** | Só um dos dois | Beszel já existe e cobre hosts; Prometheus cobre pods, control plane e apps. |

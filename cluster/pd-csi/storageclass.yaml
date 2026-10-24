@@ -1,0 +1,10 @@
+apiVersion: storage.k8s.io/v1
+kind: StorageClass
+metadata:
+  name: pd-balanced
+provisioner: pd.csi.storage.gke.io
+parameters:
+  type: pd-balanced                       # SSD de custo médio; pd-standard é HDD
+volumeBindingMode: WaitForFirstConsumer   # cria o disco na zona do nó onde o pod for agendado
+reclaimPolicy: Retain                     # apagar o PVC NÃO apaga o disco (dados do banco)
+allowVolumeExpansion: true

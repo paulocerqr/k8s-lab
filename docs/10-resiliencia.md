@@ -67,7 +67,7 @@ Sem isso, o drain seguinte derruba todas as réplicas de uma vez (respeitando o 
 | Postgres replicado (ex.: CloudNativePG, 2 instâncias) | Mais memória e complexidade |
 | Banco gerenciado (Cloud SQL) | Custo mensal, sai do escopo do lab |
 
-Para o lab, a limitação fica **aceita e medida**: manutenção no `worker-1` = Job Radar fora durante a janela.
+Para o lab, a limitação foi primeiro **aceita e medida**; depois **resolvida com o PD CSI** ([11-discos-gerenciados.md](11-discos-gerenciados.md)): no mesmo drain, o Postgres mudou para o `worker-2` sozinho e o `503` caiu para 36 s, sem depender do nó voltar.
 
 ---
 

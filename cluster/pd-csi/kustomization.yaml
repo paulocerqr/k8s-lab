@@ -1,0 +1,11 @@
+# GCE PD CSI driver (docs/11-discos-gerenciados.md): volumes em discos persistentes
+# da GCP, que se desanexam de um nó e anexam em outro.
+# Overlay "noauth": o driver usa a conta de serviço da própria VM (metadados), sem
+# chave JSON guardada no cluster. Permissões no terraform/main.tf.
+# A tag v1.27.5 do repositório fixa a imagem do driver em v1.26.0 (images/stable-master).
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+resources:
+  - https://github.com/kubernetes-sigs/gcp-compute-persistent-disk-csi-driver/deploy/kubernetes/overlays/noauth?ref=v1.27.5
+  - namespace.yaml   # o overlay oficial não cria
+  - storageclass.yaml

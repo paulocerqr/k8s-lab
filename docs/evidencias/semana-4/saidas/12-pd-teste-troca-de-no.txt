@@ -1,0 +1,19 @@
+### 2026-10-24 03:34:29 PVC de 10 GiB no pd-balanced
+namespace/pd-teste created
+persistentvolumeclaim/teste created
+pod/pd-worker-1 created
+pod/pd-worker-1 condition met
+pronto em 21 s (disco criado e anexado)
+NAME    STATUS   VOLUME                                     CAPACITY   ACCESS MODES   STORAGECLASS   VOLUMEATTRIBUTESCLASS   AGE
+teste   Bound    pvc-cb961531-aa6e-48f4-bb0f-99c09e84747b   10Gi       RWO            pd-balanced    <unset>                 22s
+pvc-cb961531-aa6e-48f4-bb0f-99c09e84747b   pd-balanced   projects/<projeto>/zones/us-central1-a/disks/pvc-cb961531-aa6e-48f4-bb0f-99c09e84747b
+
+### 03:34:53 apaga o pod do worker-1 e sobe outro no worker-2
+pod "pd-worker-1" deleted from pd-teste namespace
+pod/pd-worker-2 created
+pod/pd-worker-2 condition met
+pronto em 20 s (disco desanexado do worker-1 e anexado no worker-2)
+conteúdo lido no worker-2:
+gravado-no-worker-1 em Sat Oct 24 06:34:52 UTC 2026
+NAME STATUS NODE
+pd-worker-2 Running worker-2

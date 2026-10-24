@@ -11,7 +11,7 @@ Dois componentes que as aplicações vão precisar: onde guardar dados que sobre
 | **StorageClass** | "Quem" cria os PVs e como. Aqui: `local-path`, a padrão do cluster |
 | **local-path-provisioner** | Cria cada PV como uma pasta em `/opt/local-path-provisioner/` no nó onde o pod roda |
 
-Limitação (K06): o volume fica **preso ao nó** onde foi criado. Se o nó cair, o pod que usa o volume não sobe em outro nó até o nó voltar. Para o lab, com backup do Postgres, é aceitável; o GCE PD CSI driver (disco da GCP que muda de nó) fica como evolução.
+Limitação (K06): o volume fica **preso ao nó** onde foi criado. Se o nó cair, o pod que usa o volume não sobe em outro nó até o nó voltar. Por isso o Postgres do Job Radar foi para disco gerenciado da GCP em 24/10/2026 ([11-discos-gerenciados.md](11-discos-gerenciados.md)); o local-path continua para o Prometheus.
 
 Versão fixa: `local_path_versao` em `ansible/group_vars/all/main.yml` (manifesto oficial da release).
 

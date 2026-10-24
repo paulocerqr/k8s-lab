@@ -7,6 +7,7 @@ spec:
   schedule: "0 8-20 * * *"            # de hora em hora
   timeZone: America/Sao_Paulo
   concurrencyPolicy: Forbid
+  suspend: false   # explícito: o apply desfaz um "suspend" manual (ex.: manutenção do banco)
   successfulJobsHistoryLimit: 2
   failedJobsHistoryLimit: 3
   jobTemplate:
@@ -47,6 +48,7 @@ spec:
   schedule: "30 8-20/2 * * *"         # a cada 2 horas, na meia hora
   timeZone: America/Sao_Paulo
   concurrencyPolicy: Forbid
+  suspend: false   # explícito: o apply desfaz um "suspend" manual (ex.: manutenção do banco)
   successfulJobsHistoryLimit: 2
   failedJobsHistoryLimit: 3
   jobTemplate:

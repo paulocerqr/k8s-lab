@@ -29,6 +29,7 @@ Mais evidências (saídas reais de cada etapa): [semana 1](docs/evidencias/seman
 | [08 — Observabilidade](docs/08-observabilidade.md) | Prometheus, Alertmanager e Grafana no `cp-1`; o que é coletado |
 | [09 — Job Radar](docs/09-job-radar.md) | O app no cluster: Postgres, API, worker, CronJobs; problemas do primeiro deploy |
 | [10 — Resiliência](docs/10-resiliencia.md) | Drain de cada worker medido de fora: API sem queda num, banco preso ao nó no outro |
+| [11 — Discos gerenciados](docs/11-discos-gerenciados.md) | GCE PD CSI: o Postgres muda de nó com os dados; migração sem perda |
 | [Incidente 001](docs/incidentes/001-cloud-init-debian-gcp.md) | Nós fora da tailnet: Debian da GCP sem cloud-init |
 | [Incidente 002](docs/incidentes/002-gateway-cilium-backend-mesmo-no.md) | Gateway API do Cilium falha para backends no mesmo nó (bug [cilium#47940](https://github.com/cilium/cilium/issues/47940)) |
 | [Evidências — semana 1](docs/evidencias/semana-1/README.md) | Saídas reais dos comandos (com imagens): Terraform, firewall, tailnet, nós, pods, Cilium, teste de rede e Ansible |
@@ -41,7 +42,7 @@ Mais evidências (saídas reais de cada etapa): [semana 1](docs/evidencias/seman
 | Nó | Máquina | Papel |
 |---|---|---|
 | `cp-1` | e2-standard-4 (4 vCPU / 16 GB) | control plane + Prometheus/Grafana |
-| `worker-1` | e2-standard-2 (2 vCPU / 8 GB) | aplicações (inclui o Postgres do Job Radar) |
+| `worker-1` | e2-standard-2 (2 vCPU / 8 GB) | aplicações |
 | `worker-2` | e2-standard-2 (2 vCPU / 8 GB) | aplicações |
 
 - **Rede:** VPC própria; nenhuma porta de entrada aberta para a internet. Entre os nós, só a subnet do lab.

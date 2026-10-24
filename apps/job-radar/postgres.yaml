@@ -1,5 +1,9 @@
 # Postgres do lab (dados próprios do lab, nunca da produção: K13).
-# Volume no disco do nó (local-path): o pod fica preso ao nó onde o volume nasceu.
+# Volume num disco persistente da GCP (pd-balanced, docs/11-discos-gerenciados.md): num
+# drain ou queda de nó, o disco é desanexado e o pod renasce em outro worker.
+# O nome do volume mudou de "dados" (local-path) para "dados-pd" na migração de 24/10/2026:
+# o template de volume de um StatefulSet não pode ser alterado, e com o mesmo nome o
+# StatefulSet novo reaproveitaria o PVC antigo.
 apiVersion: v1
 kind: Service
 metadata:
@@ -53,14 +57,14 @@ spec:
             requests: {cpu: 100m, memory: 256Mi}
             limits: {memory: 512Mi}
           volumeMounts:
-            - name: dados
+            - name: dados-pd
               mountPath: /var/lib/postgresql/data
   volumeClaimTemplates:
     - metadata:
-        name: dados
+        name: dados-pd
       spec:
-        storageClassName: local-path
+        storageClassName: pd-balanced
         accessModes: ["ReadWriteOnce"]
         resources:
           requests:
-            storage: 5Gi
+            storage: 10Gi              # mínimo do pd-balanced

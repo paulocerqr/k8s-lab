@@ -8,6 +8,7 @@
 - import_playbook: playbooks/05-cilium.yml
 - import_playbook: playbooks/06-traefik.yml
 - import_playbook: playbooks/08-plataforma.yml      # antes do túnel: o token é um SealedSecret
+- import_playbook: playbooks/12-discos.yml          # antes do Job Radar: o Postgres usa pd-balanced
 - import_playbook: playbooks/09-cloudflared.yml
 - import_playbook: playbooks/10-monitoramento.yml
 - import_playbook: playbooks/11-job-radar.yml

@@ -28,11 +28,13 @@ Mais evidências (saídas reais de cada etapa): [semana 1](docs/evidencias/seman
 | [07 — Cloudflare Tunnel](docs/07-cloudflare-tunnel.md) | Publicação em HTTPS sem portas abertas; token como Sealed Secret; rotas |
 | [08 — Observabilidade](docs/08-observabilidade.md) | Prometheus, Alertmanager e Grafana no `cp-1`; o que é coletado |
 | [09 — Job Radar](docs/09-job-radar.md) | O app no cluster: Postgres, API, worker, CronJobs; problemas do primeiro deploy |
+| [10 — Resiliência](docs/10-resiliencia.md) | Drain de cada worker medido de fora: API sem queda num, banco preso ao nó no outro |
 | [Incidente 001](docs/incidentes/001-cloud-init-debian-gcp.md) | Nós fora da tailnet: Debian da GCP sem cloud-init |
 | [Incidente 002](docs/incidentes/002-gateway-cilium-backend-mesmo-no.md) | Gateway API do Cilium falha para backends no mesmo nó (bug [cilium#47940](https://github.com/cilium/cilium/issues/47940)) |
 | [Evidências — semana 1](docs/evidencias/semana-1/README.md) | Saídas reais dos comandos (com imagens): Terraform, firewall, tailnet, nós, pods, Cilium, teste de rede e Ansible |
 | [Evidências — semana 2](docs/evidencias/semana-2/saidas) | Entrada, plataforma, Cloudflare Tunnel e observabilidade |
 | [Evidências — semana 3](docs/evidencias/semana-3/README.md) | Job Radar no cluster: pods, API pública, coleta, auditoria e Telegram |
+| [Evidências — semana 4](docs/evidencias/semana-4/README.md) | Drain dos workers com sonda pública |
 
 ## Arquitetura (resumo)
 

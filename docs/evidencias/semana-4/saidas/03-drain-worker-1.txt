@@ -1,0 +1,76 @@
+### 2026-10-24 02:38:23 kubectl drain worker-1
+node/worker-1 cordoned
+Warning: ignoring DaemonSet-managed Pods: kube-system/cilium-envoy-n6gk8, kube-system/cilium-v7xff, monitoring/kps-prometheus-node-exporter-c6z8d
+evicting pod traefik/traefik-9b7bb4855-b4pxb
+evicting pod job-radar/api-6bf4df6fb8-zq44t
+evicting pod cloudflared/cloudflared-55bf79fd97-cvmsz
+evicting pod job-radar/postgres-0
+evicting pod job-radar/coletar-github-29879970-pt954
+evicting pod job-radar/coletar-github-29879850-bhr5h
+evicting pod kube-system/hubble-ui-7b5f75765b-zwgqw
+evicting pod job-radar/coletar-gupy-29879940-gp2t5
+evicting pod job-radar/coletar-gupy-29879880-m87pb
+evicting pod kube-system/sealed-secrets-controller-68679b65fb-kzp8t
+evicting pod local-path-storage/local-path-provisioner-7c7ff4f446-x6wmk
+evicting pod job-radar/worker-695f55bc-nxtrh
+evicting pod kube-system/hubble-relay-6cd684f4dc-9klcg
+pod/coletar-github-29879850-bhr5h evicted
+pod/coletar-gupy-29879940-gp2t5 evicted
+pod/coletar-github-29879970-pt954 evicted
+pod/coletar-gupy-29879880-m87pb evicted
+pod/hubble-relay-6cd684f4dc-9klcg evicted
+pod/cloudflared-55bf79fd97-cvmsz evicted
+pod/postgres-0 evicted
+pod/api-6bf4df6fb8-zq44t evicted
+pod/hubble-ui-7b5f75765b-zwgqw evicted
+pod/local-path-provisioner-7c7ff4f446-x6wmk evicted
+pod/sealed-secrets-controller-68679b65fb-kzp8t evicted
+pod/traefik-9b7bb4855-b4pxb evicted
+pod/worker-695f55bc-nxtrh evicted
+node/worker-1 drained
+
+real	0m14,704s
+user	0m0,165s
+sys	0m0,061s
+
+### 02:38:37 job-radar com o worker-1 drenado
+NAME READY STATUS NODE
+api-6bf4df6fb8-mjkqz 0/1 Running worker-2
+api-6bf4df6fb8-twmw7 0/1 Running worker-2
+postgres-0 0/1 Pending <none>
+worker-695f55bc-gf7xl 1/1 Running worker-2
+
+  Type     Reason            Age                From               Message
+  ----     ------            ----               ----               -------
+  Warning  FailedScheduling  32s (x2 over 32s)  default-scheduler  0/3 nodes are available: 1 node(s) didn't match PersistentVolume's node affinity, 1 node(s) had untolerated taint(s), 1 node(s) were unschedulable. preemption: 0/3 nodes are available: 3 Preemption is not helpful for scheduling.
+
+### 02:39:39 kubectl uncordon worker-1
+node/worker-1 uncordoned
+pod/postgres-0 condition met
+### 02:39:41 postgres-0 pronto
+Waiting for deployment "api" rollout to finish: 0 of 2 updated replicas are available...
+Waiting for deployment "api" rollout to finish: 1 of 2 updated replicas are available...
+deployment "api" successfully rolled out
+### 02:39:49 estado final
+NAME READY STATUS RESTARTS NODE
+api-6bf4df6fb8-mjkqz 1/1 Running 0 worker-2
+api-6bf4df6fb8-twmw7 1/1 Running 0 worker-2
+postgres-0 1/1 Running 0 worker-1
+worker-695f55bc-gf7xl 1/1 Running 0 worker-2
+### 02:41:11 depois de redistribuir
+cloudflared cloudflared-7977bd6476-49cdj Running worker-2
+cloudflared cloudflared-7977bd6476-zhnkl Running worker-1
+job-radar api-64dcf7587d-hz44v Running worker-2
+job-radar api-64dcf7587d-z8286 Running worker-1
+job-radar postgres-0 Running worker-1
+job-radar worker-695f55bc-gf7xl Running worker-2
+traefik traefik-6b79bf9958-7w52s Running worker-2
+traefik traefik-6b79bf9958-r9z2x Running worker-1
+
+### worker: jobs depois da volta do banco
+05:40:34 INFO Running job "job_auditar (trigger: interval[0:01:00], next run at: 2026-10-24 02:41:34 -03)" (scheduled at 202
+05:40:34 INFO Job "job_auditar (trigger: interval[0:01:00], next run at: 2026-10-24 02:41:34 -03)" executed successfully
+05:40:35 INFO Running job "job_notificar (trigger: interval[0:01:00], next run at: 2026-10-24 02:41:35 -03)" (scheduled at 2
+05:40:35 INFO Job "job_notificar (trigger: interval[0:01:00], next run at: 2026-10-24 02:41:35 -03)" executed successfully
+05:41:04 INFO Running job "gravar_heartbeat (trigger: interval[0:00:30], next run at: 2026-10-24 02:41:34 -03)" (scheduled a
+05:41:04 INFO Job "gravar_heartbeat (trigger: interval[0:00:30], next run at: 2026-10-24 02:41:34 -03)" executed successfull

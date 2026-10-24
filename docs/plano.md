@@ -373,6 +373,7 @@ App   (40%): Job Radar Fase 0     →  Job Radar Fase 1 (MVP) →  calibração 
 - [ ] Backup final do Postgres do Job Radar exportado para fora da GCP (vai para a ponte AWS, §9).
 - [ ] Prints/gravações finais; custo total registrado.
 - [ ] Remover agents do lab do Beszel Hub; remover nós da tailnet; apagar registros DNS e o tunnel.
+- [ ] **Discos do PD CSI antes do destroy:** a StorageClass `pd-balanced` usa `Retain`, então o `terraform destroy` **não** apaga esses discos (o Terraform não os conhece). Depois do backup final: `kubectl get pv` → mudar cada PV `pd-balanced` para `Delete` e apagar os PVCs; conferir com `gcloud compute disks list --filter="name~^pvc-"` (lista vazia) e apagar o que sobrar com `gcloud compute disks delete <nome> --zone us-central1-a`. Ver [11-discos-gerenciados.md](11-discos-gerenciados.md).
 - [ ] `terraform destroy`; conferir no console que não restaram discos, IPs ou snapshots.
 - **Prazo duro:** créditos expiram em **16/11/2026**.
 

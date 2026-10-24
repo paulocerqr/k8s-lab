@@ -311,8 +311,8 @@ App   (40%): Job Radar Fase 0     →  Job Radar Fase 1 (MVP) →  calibração 
 
 **Infra**
 - [x] Cotas verificadas (32 vCPUs, 8 IPs, 500 GB SSD). 
-- [ ] Criar budget alerts.
-- [ ] Remover o sistema `serverk3s` do Beszel Hub e aproveitar para **rotacionar o token** pendente do `beszel-infra`.
+- [x] Criar budget alerts.
+- [x] Remover o sistema `serverk3s` do Beszel Hub (Hub com 2 servidores). *Conferir se a rotação do token pendente do `beszel-infra` foi feita.*
 - [x] Remover as VMs antigas; **excluir VMs, discos, snapshots e política de snapshot** criados pelo console.
 - [x] ACL `tag:k8s-lab` no Tailscale (tagOwners + regra de SSH); gerar auth key **reutilizável, pré-autorizada, com a tag e validade de 1 dia** (K21).
 - [x] Terraform: criar `cp-1`, `worker-1`, `worker-2`, firewall (§3.2) e `startup-script` com o Tailscale (K17).
@@ -325,11 +325,11 @@ App   (40%): Job Radar Fase 0     →  Job Radar Fase 1 (MVP) →  calibração 
 - **Marco (23/10):** cluster reproduzível do zero; tempo de recriação registrado no README. ✅ **cumprido em 19/10**.
 
 **App (Job Radar — Fase 0 do `PLANO.md`)**
-- [ ] Projeto, ruff/pytest, config, logs JSON, CLI Typer.
-- [ ] Models + migration inicial; `seed`.
-- [ ] `/healthz`, `/readyz`; Dockerfile; docker-compose local.
-- [ ] GitHub Actions publicando no GHCR.
-- **Marco (23/10):** `docker compose up` local sobe api + worker + postgres; imagem `ghcr.io/<user>/job-radar:<sha>` publicada.
+- [x] Projeto, ruff/pytest, config, logs JSON, CLI Typer.
+- [x] Models + migration inicial; `seed`.
+- [x] `/healthz`, `/readyz`; Dockerfile; docker-compose local.
+- [x] GitHub Actions publicando no GHCR (pacote público; tag = commit da `main`).
+- **Marco (23/10):** `docker compose up` local sobe api + worker + postgres; imagem `ghcr.io/<user>/job-radar:<sha>` publicada. ✅ **cumprido**.
 
 ### Semana 2 — 24/10 a 30/10
 
@@ -343,25 +343,27 @@ App   (40%): Job Radar Fase 0     →  Job Radar Fase 1 (MVP) →  calibração 
 - **Marco (30/10):** app de teste acessível via HTTPS sem portas abertas; Grafana com métricas. ✅ **cumprido em 21/10**.
 
 **App (Job Radar — Fase 1 do `PLANO.md`)**
-- [ ] Coletores Gupy e GitHub; normalizador; dedupe; pré-filtro (Brasília-DF).
-- [ ] Máquina de estados; alimentador; expirador.
-- [ ] Auditor com provider `openai_compatible` (Groq/NVIDIA/Gemini) + `cli` (só local).
-- [ ] Webhook n8n → Telegram com confirmar/ignorar.
-- **Marco (30/10):** no ambiente local, uma recomendada real chega no Telegram.
+- [x] Coletores Gupy e GitHub; normalizador; dedupe; pré-filtro (Brasília-DF).
+- [x] Máquina de estados; alimentador; expirador.
+- [x] Auditor com provider `openai_compatible` (Groq/NVIDIA/Gemini) + `cli` (só local).
+- [x] ~~Webhook n8n →~~ Telegram direto com confirmar/ignorar (n8n dispensado: D19 do Job Radar).
+- **Marco (30/10):** no ambiente local, uma recomendada real chega no Telegram. ✅ **cumprido**.
 
 ### Semana 3 — 31/10 a 06/11 · Job Radar no cluster e resiliência
 
 **Infra**
 - [x] Manifests `apps/job-radar` (§5.3): Job de migração, api, worker, CronJobs, Postgres, HTTPRoute, NetworkPolicy, PDB. Ver [09-job-radar.md](09-job-radar.md). (n8n dispensado: D19 do Job Radar)
 - [x] `imagePullSecret` dispensado: pacote do GHCR é público.
-- [ ] Demonstrações: `kubectl drain worker-1`, kill de pod, rollout e rollback, CronJob executando — gravar evidências.
+- [x] Demonstrações: `kubectl drain worker-1`, kill de pod, rollout e rollback, CronJob executando — gravar evidências. Ver [10-resiliencia.md](10-resiliencia.md) e [evidências da semana 4](evidencias/semana-4/README.md) (24/10).
+- [x] Correções que saíram das demonstrações: `preStop` na API e no Traefik (0 erros em rollouts), PDB do CoreDNS, trava de worker único no Postgres (Job Radar `ef93791`).
+- [x] Postgres em disco gerenciado (GCE PD CSI): drain do `worker-1` de 77 s para 36 s de `503`, sem depender do nó voltar. Ver [11-discos-gerenciados.md](11-discos-gerenciados.md) (24/10).
 - [ ] Backup do Postgres (CronJob → bucket GCS ou cópia via Tailscale).
-- [ ] Se o MVP atrasar: publicar só `api` + `migrar` + Postgres (já demonstra o essencial) ou usar `podinfo` + Postgres como substituto.
-- **Marco (06/11):** Job Radar no cluster, recomendações chegando no Telegram do lab, sobrevivendo ao drain de um worker.
+- [x] ~~Se o MVP atrasar: publicar só `api` + `migrar` + Postgres ou usar `podinfo` + Postgres como substituto.~~ Não foi preciso: o MVP entrou completo.
+- **Marco (06/11):** Job Radar no cluster, recomendações chegando no Telegram do lab, sobrevivendo ao drain de um worker. ✅ **cumprido em 24/10** (falta só o backup do Postgres).
 
 **App**
-- [ ] Calibração do prompt/score com vagas reais; ajustes de pré-filtro.
-- [ ] Correções que surgirem no deploy (probes, sinais, recursos).
+- [x] Calibração do prompt/score com vagas reais; ajustes de pré-filtro (Fase 1, bloco 4).
+- [x] Correções que surgiram no deploy: `enableServiceLinks`, espalhamento das réplicas, modelo da NVIDIA, trava do worker. *Recursos: ajuste fino na semana 4.*
 
 ### Semana 4 — 07/11 a 13/11 · Diferenciais e documentação
 - [ ] ArgoCD (app-of-apps) com CI do Job Radar atualizando a tag da imagem.

@@ -11,3 +11,4 @@ Saídas reais de 24/10/2026. Explicação e conclusões: [10-resiliencia.md](../
 | [`saidas/05-rollout-eb22792.txt`](saidas/05-rollout-eb22792.txt) | Troca do `newTag` e playbook: rollout em 38 s, imagens antes e depois |
 | [`saidas/06-rollback.txt`](saidas/06-rollback.txt) | `rollout undo` (27 s, CronJobs ficam na versão nova) e reaplicação do Git |
 | [`saidas/07-sonda-rollout-rollback.txt`](saidas/07-sonda-rollout-rollback.txt) | Sonda pública nas 3 trocas de versão |
+| [`saidas/08-prestop-rollouts.txt`](saidas/08-prestop-rollouts.txt) | Depois do `preStop`: 6 rollouts, 378 requisições, 0 erros |

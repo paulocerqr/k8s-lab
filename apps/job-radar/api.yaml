@@ -41,6 +41,11 @@ spec:
           ports:
             - name: http
               containerPort: 8000
+          lifecycle:
+            # espera antes do SIGTERM: o Traefik tira o pod da lista em paralelo ao
+            # encerramento; sem a espera, ainda chegam requisições num pod parado (502)
+            preStop:
+              sleep: {seconds: 5}
           readinessProbe:                 # banco acessível (RNF10)
             httpGet: {path: /readyz, port: http}
             periodSeconds: 10

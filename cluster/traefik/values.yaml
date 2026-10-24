@@ -43,6 +43,11 @@ ports:
 # Duas réplicas, uma em cada worker: o drain de um nó não derruba a entrada
 deployment:
   replicas: 2
+  lifecycle:
+    # mesma corrida da API: o cloudflared ainda manda requisições pelo Service
+    # enquanto o pod do Traefik encerra; 5 s para sair da lista antes do SIGTERM
+    preStop:
+      sleep: {seconds: 5}
 topologySpreadConstraints:
   - maxSkew: 1
     topologyKey: kubernetes.io/hostname

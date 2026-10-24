@@ -110,4 +110,29 @@ Em 3 trocas de versão, **3 respostas `502`** e **2 sem resposta** em 121 requis
 
 É uma corrida conhecida do Kubernetes: ao encerrar um pod, o `SIGTERM` para o processo e a remoção do pod da lista de endpoints acontecem **em paralelo**. Por alguns instantes, o Traefik ainda manda requisições para um pod que já está parando. É a mesma causa do `502` no drain do `worker-2`.
 
-Correção (próximo passo): `preStop` com alguns segundos de espera na API, para o pod continuar atendendo até o Traefik tirá-lo da lista.
+## Correção: `preStop` (antes e depois)
+
+Na API (`apps/job-radar/api.yaml`) e no Traefik (`cluster/traefik/values.yaml`):
+
+```yaml
+lifecycle:
+  preStop:
+    sleep: {seconds: 5}   # ação nativa do Kubernetes: não precisa de `sleep` na imagem
+```
+
+```
+sem preStop:  SIGTERM → app para na hora ─┐
+              remoção da lista do Traefik ─┴→ corrida: requisição num pod parado → 502
+com preStop:  espera 5 s (app ainda atende) → já saiu da lista → SIGTERM → app para
+```
+
+O cloudflared não precisa: não fica atrás de um Service; no SIGTERM ele mesmo avisa a Cloudflare e para de receber conexões.
+
+Para provar, não basta aplicar: o primeiro rollout encerra os pods **antigos** (sem `preStop`). O teste é recriar de novo os pods que já têm a espera:
+
+| | Trocas de pods | Requisições | Erros |
+|---|---|---|---|
+| **Antes** (rollout + undo + reaplicar) | 3 rollouts | 121 (1/s) | **3 × `502`, 2 sem resposta** |
+| **Depois** (3 rodadas de `rollout restart` da API e do Traefik) | 6 rollouts, 12 pods encerrados | 378 (5/s) | **0** |
+
+Custo: cada pod leva 5 s a mais para encerrar (rollouts e drains um pouco mais lentos).

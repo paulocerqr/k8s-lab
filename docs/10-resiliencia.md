@@ -136,3 +136,29 @@ Para provar, não basta aplicar: o primeiro rollout encerra os pods **antigos** 
 | **Depois** (3 rodadas de `rollout restart` da API e do Traefik) | 6 rollouts, 12 pods encerrados | 378 (5/s) | **0** |
 
 Custo: cada pod leva 5 s a mais para encerrar (rollouts e drains um pouco mais lentos).
+
+---
+
+# Kill de pods
+
+`kubectl delete pod` em cada componente do Job Radar, com a sonda a cada ~0,2 s (24/10/2026). Evidência: [`09-kill-de-pods.txt`](evidencias/semana-4/saidas/09-kill-de-pods.txt).
+
+| Pod | Como | Recuperação | Efeito público |
+|---|---|---|---|
+| Réplica da API | `delete` normal (passa pelo `preStop`) | Nova pronta em ~12 s | **Nenhum** |
+| Réplica da API | `delete --grace-period=0 --force` (queda abrupta) | Nova pronta em ~12 s | **Nenhum**: a outra réplica atende |
+| `postgres-0` | `delete` | Volta **no mesmo nó** (volume local-path) em ~13 s | **`503` por ~10 s** (03:09:06 → 03:09:16) |
+| Worker | `delete` | Novo com polling ativo em ~3 s | Nenhum (não atende HTTP) |
+
+## Achado: o `Recreate` não vale quando o pod é apagado
+
+A estratégia `Recreate` do worker (D16: nunca 2 fazendo polling do Telegram ao mesmo tempo) só é respeitada em **rollouts**. Num `kubectl delete pod`, numa eviction ou numa queda de nó, o ReplicaSet cria o substituto **na hora**, sem esperar o antigo terminar:
+
+```
+worker-544fcdd959-fhsbv   1/1   Terminating   ← antigo: termina o long polling (até ~25 s)
+worker-544fcdd959-zl7h5   1/1   Running       ← novo: já fazendo polling
+```
+
+Nessa janela existem 2 workers: dois pollings do mesmo bot (o Telegram responde `409 Conflict` a um deles) e dois schedulers (auditoria/notificação podem rodar em dobro). Desta vez não houve efeito visível, mas a garantia do D16 **não é dada pelo Kubernetes**.
+
+Correção certa (no Job Radar, não no cluster): **trava no Postgres** (`pg_try_advisory_lock`) para o worker só começar a agendar e fazer polling quando for o único dono da trava. É o mesmo padrão de *leader election* que os controladores do Kubernetes usam.

@@ -12,3 +12,4 @@ Saídas reais de 24/10/2026. Explicação e conclusões: [10-resiliencia.md](../
 | [`saidas/06-rollback.txt`](saidas/06-rollback.txt) | `rollout undo` (27 s, CronJobs ficam na versão nova) e reaplicação do Git |
 | [`saidas/07-sonda-rollout-rollback.txt`](saidas/07-sonda-rollout-rollback.txt) | Sonda pública nas 3 trocas de versão |
 | [`saidas/08-prestop-rollouts.txt`](saidas/08-prestop-rollouts.txt) | Depois do `preStop`: 6 rollouts, 378 requisições, 0 erros |
+| [`saidas/09-kill-de-pods.txt`](saidas/09-kill-de-pods.txt) | Kill de API (normal e forçado), Postgres e worker; 2 workers ao mesmo tempo |

@@ -1,0 +1,33 @@
+### 2026-10-24 02:49:53 kubectl rollout undo (emergência)
+deployment.apps/api rolled back
+deployment.apps/worker rolled back
+Waiting for deployment "api" rollout to finish: 1 out of 2 new replicas have been updated...
+Waiting for deployment "api" rollout to finish: 1 out of 2 new replicas have been updated...
+Waiting for deployment "api" rollout to finish: 1 out of 2 new replicas have been updated...
+Waiting for deployment "api" rollout to finish: 1 old replicas are pending termination...
+Waiting for deployment "api" rollout to finish: 1 old replicas are pending termination...
+Waiting for deployment "api" rollout to finish: 1 old replicas are pending termination...
+deployment "api" successfully rolled out
+deployment "worker" successfully rolled out
+duração: 27 s
+
+### 02:50:20 depois do undo
+api: ghcr.io/paulocerqr/job-radar:ddd3b920a9ae91ca1848e9c58c1bac55bd076f5c
+worker: ghcr.io/paulocerqr/job-radar:ddd3b920a9ae91ca1848e9c58c1bac55bd076f5c
+coletar-github: ghcr.io/paulocerqr/job-radar:eb227925456e7f7f24e8955514158ed795f0eb6e
+coletar-gupy: ghcr.io/paulocerqr/job-radar:eb227925456e7f7f24e8955514158ed795f0eb6e
+
+### 02:50:31 reaplicar o Git (fonte da verdade): ansible-playbook playbooks/11-job-radar.yml
+PLAY RECAP *********************************************************************
+localhost                  : ok=5    changed=1    unreachable=0    failed=0    skipped=2    rescued=0    ignored=0   
+duração: 28 s
+
+### 02:50:59 estado final
+api: ghcr.io/paulocerqr/job-radar:eb227925456e7f7f24e8955514158ed795f0eb6e
+worker: ghcr.io/paulocerqr/job-radar:eb227925456e7f7f24e8955514158ed795f0eb6e
+coletar-github: ghcr.io/paulocerqr/job-radar:eb227925456e7f7f24e8955514158ed795f0eb6e
+coletar-gupy: ghcr.io/paulocerqr/job-radar:eb227925456e7f7f24e8955514158ed795f0eb6e
+
+8         <none>
+9         <none>
+

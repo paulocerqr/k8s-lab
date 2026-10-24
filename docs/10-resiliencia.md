@@ -64,3 +64,50 @@ Sem isso, o drain seguinte derruba todas as réplicas de uma vez (respeitando o 
 | Banco gerenciado (Cloud SQL) | Custo mensal, sai do escopo do lab |
 
 Para o lab, a limitação fica **aceita e medida**: manutenção no `worker-1` = Job Radar fora durante a janela.
+
+---
+
+# Rollout e rollback de versão
+
+Atualização do Job Radar de `ddd3b92` para `eb22792` (preset da NVIDIA corrigido), em 24/10/2026, com a mesma sonda pública.
+
+## Rollout pelo Git (o caminho normal)
+
+```bash
+# apps/job-radar/kustomization.yaml: newTag ddd3b92... → eb22792...
+cd ansible && ansible-playbook playbooks/11-job-radar.yml
+```
+
+| Etapa | Resultado |
+|---|---|
+| Duração total do playbook | **38 s** (manifestos → migração com a imagem nova → espera API e worker) |
+| API | `RollingUpdate`: com 2 réplicas, `maxSurge` 1 e `maxUnavailable` 0 → sempre 2 prontas |
+| Worker | `Recreate` (D16): o antigo para antes de o novo subir, nunca 2 fazendo polling do Telegram |
+| CronJobs | Imagem nova a partir da próxima execução |
+| Conferência | `presets.py` dentro do pod novo: `nvidia/nemotron-3.5-lightning-30b-a3b` |
+
+## Rollback de emergência: `kubectl rollout undo`
+
+```bash
+kubectl -n job-radar rollout undo deploy/api
+kubectl -n job-radar rollout undo deploy/worker
+```
+
+Volta para a versão anterior em **27 s**, sem esperar CI nem Git. Mas mostrou duas armadilhas:
+
+1. **Só vale para Deployments.** Os CronJobs **continuaram na versão nova**: coleta numa versão, API e worker em outra.
+2. **Drift:** o cluster passa a divergir do Git (o próprio kubectl avisa que a anotação `last-applied-configuration` ficou desatualizada). O próximo `apply` desfaz o rollback sem aviso.
+
+Por isso o `undo` é só para estancar um problema. **O rollback de verdade é no Git**: `git revert` do commit que trocou o `newTag` e rodar o playbook de novo. Aqui, como a versão desejada era a nova, reaplicar o Git (28 s) devolveu tudo à `eb22792`, de forma coerente.
+
+## O que a sonda mostrou: o `502` da troca de pods
+
+Em 3 trocas de versão, **3 respostas `502`** e **2 sem resposta** em 121 requisições. No log do Traefik:
+
+```
+"GET /readyz HTTP/1.1" 502 ... "http://10.244.2.96:8000"   ← IP da réplica ANTIGA, já encerrando
+```
+
+É uma corrida conhecida do Kubernetes: ao encerrar um pod, o `SIGTERM` para o processo e a remoção do pod da lista de endpoints acontecem **em paralelo**. Por alguns instantes, o Traefik ainda manda requisições para um pod que já está parando. É a mesma causa do `502` no drain do `worker-2`.
+
+Correção (próximo passo): `preStop` com alguns segundos de espera na API, para o pod continuar atendendo até o Traefik tirá-lo da lista.

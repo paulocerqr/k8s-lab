@@ -1,0 +1,44 @@
+### 2026-10-24 02:48:45 antes
+api: ghcr.io/paulocerqr/job-radar:ddd3b920a9ae91ca1848e9c58c1bac55bd076f5c
+worker: ghcr.io/paulocerqr/job-radar:ddd3b920a9ae91ca1848e9c58c1bac55bd076f5c
+coletar-github: ghcr.io/paulocerqr/job-radar:ddd3b920a9ae91ca1848e9c58c1bac55bd076f5c
+coletar-gupy: ghcr.io/paulocerqr/job-radar:ddd3b920a9ae91ca1848e9c58c1bac55bd076f5c
+NAME READY NODE
+api-64dcf7587d-hz44v 1/1 worker-2
+api-64dcf7587d-z8286 1/1 worker-1
+
+### 02:48:48 git diff
+-    newTag: ddd3b920a9ae91ca1848e9c58c1bac55bd076f5c   # commit da main publicado pelo CI
++    newTag: eb227925456e7f7f24e8955514158ed795f0eb6e   # commit da main publicado pelo CI
+
+### 02:48:48 ansible-playbook playbooks/11-job-radar.yml
+TASK [Aplicar os manifestos (kustomize)] ***************************************
+changed: [localhost]
+TASK [Esperar o Postgres] ******************************************************
+ok: [localhost]
+TASK [Imagem da última migração] ***********************************************
+ok: [localhost]
+TASK [Apagar o Job anterior] ***************************************************
+changed: [localhost]
+TASK [Criar o Job de migração + seed] ******************************************
+changed: [localhost]
+TASK [Esperar a migração terminar] *********************************************
+ok: [localhost]
+TASK [Esperar a API e o worker] ************************************************
+ok: [localhost] => (item=api)
+ok: [localhost] => (item=worker)
+PLAY RECAP *********************************************************************
+localhost                  : ok=7    changed=3    unreachable=0    failed=0    skipped=0    rescued=0    ignored=0   
+TASKS RECAP ********************************************************************
+duração: 38 s
+
+### 02:49:26 depois
+api: ghcr.io/paulocerqr/job-radar:eb227925456e7f7f24e8955514158ed795f0eb6e
+worker: ghcr.io/paulocerqr/job-radar:eb227925456e7f7f24e8955514158ed795f0eb6e
+coletar-github: ghcr.io/paulocerqr/job-radar:eb227925456e7f7f24e8955514158ed795f0eb6e
+coletar-gupy: ghcr.io/paulocerqr/job-radar:eb227925456e7f7f24e8955514158ed795f0eb6e
+NAME READY STATUS RESTARTS NODE
+api-747b64b558-k5k89 1/1 Running 0 worker-2
+api-747b64b558-pj6bp 1/1 Running 0 worker-1
+postgres-0 1/1 Running 0 worker-1
+worker-544fcdd959-cgrcv 1/1 Running 0 worker-1

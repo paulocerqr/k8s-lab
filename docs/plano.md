@@ -367,7 +367,7 @@ App   (40%): Job Radar Fase 0     →  Job Radar Fase 1 (MVP) →  calibração 
 
 ### Semana 4 — 07/11 a 13/11 · Diferenciais e documentação
 - [x] ArgoCD (app-of-apps): Job Radar e whoami sincronizados do Git, ondas com a migração como hook, self-heal. Ver [13-argocd.md](13-argocd.md) (24/10).
-- [ ] CI do Job Radar atualizando a tag da imagem no k8s-lab.
+- [x] CI do Job Radar atualizando a tag da imagem no k8s-lab (deploy key, `github-actions[bot]`): merge → versão no ar em ~6 min, sem erro. Ver [13-argocd.md](13-argocd.md#deploy-ponta-a-ponta-do-merge-ao-cluster) (24/10).
 - [ ] Ajuste de requests/limits a partir do Grafana.
 - [ ] (Bônus) UtilityDev staging (§5.4, K16).
 - [ ] Documentação `docs/00..12`, prints revisados, custo real consumido.

@@ -74,6 +74,25 @@ Evidência: [`16-argocd.txt`](evidencias/semana-4/saidas/16-argocd.txt).
 
 Depois do primeiro sync, o `StatefulSet` do Postgres e o `HTTPRoute` ficaram `OutOfSync`, apesar de iguais ao Git. Causa: o Kubernetes preenche valores padrão (`volumeMode: Filesystem` nos templates de volume, `group`/`kind` nos `parentRefs`) e a comparação do lado do Argo CD vê isso como diferença. Correção: `argocd.argoproj.io/compare-options: ServerSideDiff=true` na Application, que faz a comparação pelo servidor da API (com os padrões aplicados).
 
+## Deploy ponta a ponta: do merge ao cluster
+
+O CI do Job Radar fecha o ciclo ([`docs/CI-CD.md`](https://github.com/paulocerqr/job-radar/blob/main/docs/CI-CD.md), job `atualizar-lab`): depois de publicar a imagem, faz checkout deste repositório com uma **deploy key** (escrita só aqui), troca o `newTag` e faz commit como `github-actions[bot]`. Ninguém acessa o cluster para fazer deploy.
+
+Primeira execução (24/10/2026, PR #14 do Job Radar), com a sonda pública a cada 0,5 s ([`17-gitops-ponta-a-ponta.txt`](evidencias/semana-4/saidas/17-gitops-ponta-a-ponta.txt)):
+
+| Hora | Etapa | Duração |
+|---|---|---|
+| 18:59:34 | Merge do PR na `main` do Job Radar | — |
+| 19:00:20 | Testes | 40 s |
+| 19:00:54 | Imagem `696b7be` no GHCR | 32 s |
+| 19:00:59 | Commit `ci: job-radar → 696b7be` no k8s-lab (`github-actions[bot]`) | 6 s |
+| 19:04:46 | Argo CD detecta e inicia o sync; hook `migrar` (10 s) | **3 min 47 s de espera** |
+| 19:05:22 | Rollout de API e worker concluído | 36 s |
+
+**Total: ~6 min do merge à versão nova no ar, com 478 de 478 respostas `200`.**
+
+A maior parte é o Argo CD esperando o próximo ciclo de leitura do Git (`timeout.reconciliation: 180s` + até 60 s de variação). Para ser imediato, o GitHub avisaria o Argo CD por **webhook**; isso exige expor o endpoint do Argo CD na internet (hoje só port-forward), então fica como evolução, com Cloudflare Access na frente.
+
 ## Acessando a interface
 
 Sem exposição pública, por port-forward:

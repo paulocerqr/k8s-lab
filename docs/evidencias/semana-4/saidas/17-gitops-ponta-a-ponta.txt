@@ -1,0 +1,20 @@
+### 2026-10-24 18:59:33 antes: API na imagem ef93791
+### 18:59:34 gh pr merge 14
+merge: 696b7be
+### 19:01:04 CI na main: success
+  testes: success 21:59:40→22:00:20 UTC
+  imagem: success 22:00:22→22:00:54 UTC
+  atualizar-lab: success 22:00:56→22:01:02 UTC
+### commit no k8s-lab:
+  2ef7bc3 github-actions[bot] <41898282+github-actions[bot]@users.noreply.github.com> 2026-10-24T22:00:59Z | ci: job-radar → 696b7be
+### 19:04:58 Argo CD aplicou: API na imagem 696b7be
+deployment "api" successfully rolled out
+deployment "worker" successfully rolled out
+### 19:05:22 rollout concluído
+JOB      STATUS               INICIO                 FIM                    IMAGEM
+migrar   SuccessCriteriaMet   2026-10-24T22:04:46Z   2026-10-24T22:04:56Z   696b7be
+APP         SYNC     SAUDE     REVISAO
+job-radar   Synced   Healthy   2ef7bc31989928cf36d2fff26b3c92dbf3d008e2
+
+# sonda GET /readyz a cada ~0,5 s durante todo o fluxo
+    478 200

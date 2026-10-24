@@ -2,6 +2,8 @@
 apiVersion: batch/v1
 kind: CronJob
 metadata:
+  annotations:
+    argocd.argoproj.io/sync-wave: "1"
   name: coletar-gupy
 spec:
   schedule: "0 8-20 * * *"            # de hora em hora
@@ -43,6 +45,8 @@ spec:
 apiVersion: batch/v1
 kind: CronJob
 metadata:
+  annotations:
+    argocd.argoproj.io/sync-wave: "1"
   name: coletar-github
 spec:
   schedule: "30 8-20/2 * * *"         # a cada 2 horas, na meia hora

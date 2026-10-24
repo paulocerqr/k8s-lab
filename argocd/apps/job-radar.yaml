@@ -1,0 +1,27 @@
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: job-radar
+  namespace: argocd
+  # apagar a Application NÃO apaga os recursos do app (sem finalizer de cascata):
+  # proteção do banco contra um engano no Git
+spec:
+  project: default
+  source:
+    repoURL: https://github.com/paulocerqr/k8s-lab.git
+    targetRevision: main
+    path: apps/job-radar
+  destination:
+    server: https://kubernetes.default.svc
+    namespace: job-radar
+  syncPolicy:
+    automated:
+      prune: true      # o que sair do Git sai do cluster
+      selfHeal: true   # mudança manual no cluster é desfeita (o Git é a verdade)
+    syncOptions:
+      - ServerSideApply=true
+  ignoreDifferences:
+    # o controlador do Sealed Secrets completa campos no status/metadata do Secret gerado
+    - group: bitnami.com
+      kind: SealedSecret
+      jsonPointers: [/status]

@@ -19,7 +19,7 @@ https://jobradar-lab ──► Traefik ──► api (2 réplicas) ──► Pos
 | Recurso | Tipo | Detalhes |
 |---|---|---|
 | `postgres` | StatefulSet + Service | `postgres:16-alpine`, volume de 5 GB; só aceita conexões do próprio Job Radar (NetworkPolicy) |
-| `migrar` | Job | `job-radar migrar` (init) + `job-radar seed`; recriado pelo playbook só quando a imagem muda |
+| `migrar` | Job (hook do Argo CD) | `job-radar migrar` (init) + `job-radar seed`; recriado a cada sincronização, depois do Postgres e antes de API/worker |
 | `api` | Deployment (2) + Service + PDB + HTTPRoute | `/healthz` (liveness) e `/readyz` (readiness: banco acessível); `jobradar-lab.utileasy.com.br` |
 | `worker` | Deployment (1, `Recreate`) | Scheduler + polling do Telegram: nunca 2 ao mesmo tempo (D16); liveness pelo heartbeat |
 | `coletar-gupy`, `coletar-github` | CronJob | `timeZone: America/Sao_Paulo`, `concurrencyPolicy: Forbid`, `COLETA_NO_WORKER=false` |
@@ -33,8 +33,8 @@ Todos os pods: sem root, sem privilégios, sistema de arquivos somente leitura (
 | `apps/job-radar/kustomization.yaml` | Lista os recursos e fixa **a versão da imagem num único lugar** (`newTag` = commit da `main`) |
 | `apps/job-radar/sealedsecret.yaml` | `DATABASE_URL`, senha do Postgres, `FERNET_KEY`, admin, token do bot e chaves de IA, cifrados |
 | `apps/job-radar/configmap.yaml` | Configuração não sensível (fuso, logs, coleta por CronJob) |
-| `apps/job-radar/migrar-job.yaml` | Job de migração (fora do kustomization; o playbook põe a imagem) |
-| `ansible/playbooks/11-job-radar.yml` | Aplica, espera o Postgres, migra, espera API e worker |
+| `apps/job-radar/migrar-job.yaml` | Job de migração, hook do Argo CD na onda 0 |
+| `argocd/apps/job-radar.yaml` | Application do Argo CD: aplica esta pasta e mantém o cluster igual ao Git ([13-argocd.md](13-argocd.md)) |
 
 Segredos: a `FERNET_KEY`, a senha do Postgres e a do admin são **próprias do lab** (K13); token do bot e chaves de IA são os mesmos do ambiente local. Cópia em texto puro só em `~/.config/k8s-lab/job-radar.env` (`600`).
 
@@ -42,7 +42,7 @@ Segredos: a `FERNET_KEY`, a senha do Postgres e a do admin são **próprias do l
 
 1. CI do `job-radar` publica `ghcr.io/paulocerqr/job-radar:<sha>`.
 2. Trocar o `newTag` no `apps/job-radar/kustomization.yaml`.
-3. `ansible-playbook playbooks/11-job-radar.yml` → migração com a imagem nova e rollout de API, worker e CronJobs.
+3. Commit e push. O Argo CD percebe a mudança (até 3 min), roda a migração com a imagem nova e faz o rollout de API, worker e CronJobs. Até 24/10/2026 isso era o playbook `11-job-radar.yml`, removido com a chegada do Argo CD.
 
 ## Preparação dos dados (uma vez, depois do primeiro deploy)
 

@@ -1,0 +1,26 @@
+# Argo CD (chart argo/argo-cd 10.11.1, v3.5.6) — docs/13-argocd.md
+# Tudo no cp-1, como o monitoramento (K10): os workers ficam para as aplicações.
+global:
+  nodeSelector:
+    kubernetes.io/hostname: cp-1
+  tolerations:
+    - key: node-role.kubernetes.io/control-plane
+      operator: Exists
+      effect: NoSchedule
+
+configs:
+  params:
+    # interface só por port-forward (nada exposto); sem TLS no próprio servidor
+    server.insecure: true
+  cm:
+    # o Git é público: o Argo CD lê sem credencial. Checa mudanças a cada 3 min.
+    timeout.reconciliation: 180s
+
+# sem login por SSO (só o admin local) e sem notificações
+dex:
+  enabled: false
+notifications:
+  enabled: false
+# ApplicationSet não é usado: as apps são arquivos em argocd/apps (app-of-apps)
+applicationSet:
+  replicas: 0

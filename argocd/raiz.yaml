@@ -1,0 +1,19 @@
+# App-of-apps (docs/13-argocd.md): esta Application lê argocd/apps/ e cria uma
+# Application para cada arquivo de lá. Publicar um app novo = adicionar um arquivo.
+# É a única coisa aplicada à mão (pelo playbook 13); o resto vem do Git.
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: raiz
+  namespace: argocd
+spec:
+  project: default
+  source:
+    repoURL: https://github.com/paulocerqr/k8s-lab.git
+    targetRevision: main
+    path: argocd/apps
+  destination:
+    server: https://kubernetes.default.svc
+    namespace: argocd
+  syncPolicy:
+    automated: {prune: true, selfHeal: true}

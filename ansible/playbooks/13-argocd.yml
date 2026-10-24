@@ -1,0 +1,57 @@
+# docs/13-argocd.md: Argo CD e a Application raiz (app-of-apps). Depois disto, os apps
+# em argocd/apps/ são aplicados pelo Argo CD a partir do Git, não pelo Ansible.
+# Pré-requisitos: 08-plataforma (Sealed Secrets) e 12-discos (pd-balanced do Postgres).
+- name: Argo CD
+  hosts: localhost
+  connection: local
+  gather_facts: false
+  become: false
+
+  environment:
+    KUBECONFIG: "{{ kubeconfig_local }}"
+
+  vars:
+    pasta: "{{ playbook_dir }}/../../cluster/argocd"
+    raiz: "{{ playbook_dir }}/../../argocd/raiz.yaml"
+
+  tasks:
+    - name: Namespace
+      ansible.builtin.shell: kubectl create namespace argocd --dry-run=client -o yaml | kubectl apply -f -
+      register: ns
+      changed_when: "'unchanged' not in ns.stdout"
+
+    - name: Repositório de charts
+      ansible.builtin.command: helm repo add argo https://argoproj.github.io/argo-helm --force-update
+      changed_when: false
+
+    - name: Valores e versão atualmente instalados
+      ansible.builtin.shell: |
+        helm list -n argocd -f '^argocd$' -o json
+        echo '---'
+        helm get values argocd -n argocd -o json 2>/dev/null || echo '{}'
+      register: atual
+      changed_when: false
+      check_mode: false
+
+    - name: Calcular a configuração desejada
+      ansible.builtin.set_fact:
+        argocd_valores: "{{ lookup('file', pasta ~ '/values.yaml') | from_yaml }}"
+        argocd_instalado_versao: >-
+          {{ (atual.stdout.split('---')[0] | from_json | map(attribute='chart') | list + [''])[0] }}
+        argocd_instalado_valores: "{{ atual.stdout.split('---')[1] | from_json }}"
+
+    - name: Instalar/atualizar o Argo CD (chart {{ argocd_chart_versao }})
+      ansible.builtin.command: >-
+        helm upgrade --install argocd argo/argo-cd
+        --version {{ argocd_chart_versao }}
+        --namespace argocd
+        -f {{ pasta }}/values.yaml
+        --wait --timeout 10m
+      when: >-
+        argocd_instalado_versao != 'argo-cd-' ~ argocd_chart_versao
+        or argocd_instalado_valores != argocd_valores
+
+    - name: Application raiz (app-of-apps)
+      ansible.builtin.command: kubectl apply -f {{ raiz }}
+      register: app_raiz
+      changed_when: "'unchanged' not in app_raiz.stdout"

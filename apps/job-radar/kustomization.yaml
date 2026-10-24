@@ -1,5 +1,5 @@
-# Job Radar no lab (plano §5.3). A versão da imagem fica SÓ aqui:
-#   kubectl apply -k apps/job-radar   (o Job de migração é aplicado pelo playbook 11)
+# Job Radar no lab (plano §5.3). A versão da imagem fica SÓ aqui (newTag).
+# Aplicado pelo Argo CD (argocd/apps/job-radar.yaml): mudou no Git, o cluster acompanha.
 apiVersion: kustomize.config.k8s.io/v1beta1
 kind: Kustomization
 namespace: job-radar
@@ -16,6 +16,7 @@ resources:
   - worker.yaml
   - cronjobs.yaml
   - backup.yaml
+  - migrar-job.yaml   # hook do Argo CD (onda 0)
   - networkpolicy.yaml
 images:
   - name: ghcr.io/paulocerqr/job-radar

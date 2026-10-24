@@ -1,12 +1,15 @@
-# Migrations + seed antes de cada versão nova (RNF11). Fica fora do kustomization:
-# o playbook 11 substitui IMAGEM pela tag do kustomization e recria o Job quando muda.
+# Migrations + seed antes de cada versão nova (RNF11), como hook do Argo CD
+# (docs/13-argocd.md): recriado a cada sincronização, na onda 0 — depois do Postgres
+# (onda -1) e antes de API, worker e CronJobs (onda 1). A imagem vem do `newTag` do
+# kustomization, como a dos outros pods. Migrations e seed são idempotentes.
 apiVersion: batch/v1
 kind: Job
 metadata:
   name: migrar
-  namespace: job-radar
-  labels:
-    app.kubernetes.io/part-of: job-radar
+  annotations:
+    argocd.argoproj.io/hook: Sync
+    argocd.argoproj.io/sync-wave: "0"
+    argocd.argoproj.io/hook-delete-policy: BeforeHookCreation   # apaga o anterior antes de criar
 spec:
   backoffLimit: 2
   ttlSecondsAfterFinished: 86400
@@ -23,20 +26,23 @@ spec:
         seccompProfile: {type: RuntimeDefault}
       initContainers:
         - name: migrar
-          image: IMAGEM
+          image: ghcr.io/paulocerqr/job-radar
           args: ["migrar"]
           envFrom:
             - configMapRef: {name: job-radar}
             - secretRef: {name: job-radar}
-          securityContext: &seguro
+          securityContext:
             allowPrivilegeEscalation: false
             readOnlyRootFilesystem: true
             capabilities: {drop: ["ALL"]}
       containers:
         - name: seed
-          image: IMAGEM
+          image: ghcr.io/paulocerqr/job-radar
           args: ["seed"]
           envFrom:
             - configMapRef: {name: job-radar}
             - secretRef: {name: job-radar}
-          securityContext: *seguro
+          securityContext:
+            allowPrivilegeEscalation: false
+            readOnlyRootFilesystem: true
+            capabilities: {drop: ["ALL"]}

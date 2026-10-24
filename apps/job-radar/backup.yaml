@@ -5,6 +5,8 @@
 apiVersion: batch/v1
 kind: CronJob
 metadata:
+  annotations:
+    argocd.argoproj.io/sync-wave: "1"
   name: backup-postgres
 spec:
   schedule: "0 3 * * *"                # 03:00, fora da janela de coleta

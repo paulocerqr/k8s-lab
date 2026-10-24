@@ -1,0 +1,16 @@
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: teste
+  namespace: argocd
+spec:
+  project: default
+  source:
+    repoURL: https://github.com/paulocerqr/k8s-lab.git
+    targetRevision: main
+    path: cluster/teste
+  destination:
+    server: https://kubernetes.default.svc
+    namespace: teste
+  syncPolicy:
+    automated: {prune: true, selfHeal: true}

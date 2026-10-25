@@ -11,3 +11,4 @@ data:
   LOG_LEVEL: INFO
   COLETA_NO_WORKER: "false"      # no cluster, a coleta é feita pelos CronJobs (D17, K10)
   WORKER_HEARTBEAT_PATH: /tmp/job-radar-worker.heartbeat
+  SESSAO_COOKIE_SEGURO: "true"   # Web UI só por HTTPS (Cloudflare); a chave da sessão vem da FERNET_KEY

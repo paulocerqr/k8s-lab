@@ -6,7 +6,7 @@ O [Job Radar](https://github.com/paulocerqr/job-radar) roda no lab com a mesma i
 
 ```
                   CronJobs (08-20h, Brasília)
-                  coletar-gupy (1/h) · coletar-github (2/2h)
+                  coletar-gupy (1/h) · coletar-github · coletar-solides (2/2h)
                               │ grava vagas
                               ▼
 https://jobradar-lab ──► Traefik ──► api (2 réplicas) ──► Postgres (StatefulSet, 10 GB pd-balanced)
@@ -22,7 +22,7 @@ https://jobradar-lab ──► Traefik ──► api (2 réplicas) ──► Pos
 | `migrar` | Job (hook do Argo CD) | `job-radar migrar` (init) + `job-radar seed`; recriado a cada sincronização, depois do Postgres e antes de API/worker |
 | `api` | Deployment (2) + Service + PDB + HTTPRoute | `/healthz` (liveness) e `/readyz` (readiness: banco acessível); `jobradar-lab.utileasy.com.br` |
 | `worker` | Deployment (1, `Recreate`) | Scheduler + polling do Telegram: nunca 2 ao mesmo tempo (D16); liveness pelo heartbeat |
-| `coletar-gupy`, `coletar-github` | CronJob | `timeZone: America/Sao_Paulo`, `concurrencyPolicy: Forbid`, `COLETA_NO_WORKER=false` |
+| `coletar-gupy`, `coletar-github`, `coletar-solides` | CronJob | `timeZone: America/Sao_Paulo`, `concurrencyPolicy: Forbid`, `COLETA_NO_WORKER=false` |
 
 Todos os pods: sem root, sem privilégios, sistema de arquivos somente leitura (só `/tmp` gravável).
 

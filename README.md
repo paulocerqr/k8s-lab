@@ -1,8 +1,8 @@
 # k8s-lab
 
-Cluster Kubernetes autogerenciado (kubeadm) em 3 VMs na Google Cloud, montado do zero com Terraform e Ansible, acessado só pela tailnet (Tailscale), publicado sem portas abertas (Cloudflare Tunnel) e com deploy por GitOps (Argo CD). A aplicação principal é o [Job Radar](https://github.com/paulocerqr/job-radar), no ar em **https://jobradar-lab.utileasy.com.br**.
+Cluster Kubernetes autogerenciado (kubeadm) em 3 VMs na Google Cloud, montado do zero com Terraform e Ansible, acessado só pela tailnet (Tailscale), publicado sem portas abertas (Cloudflare Tunnel) e com deploy por GitOps (Argo CD). A aplicação principal é o [Job Radar](https://github.com/paulocerqr/job-radar), com Web UI no ar em **https://jobradar-lab.utileasy.com.br**.
 
-**Status (24/10/2026):** semanas 1 a 4 concluídas; falta o encerramento (até 15/11, créditos expiram em 16/11).
+**Status (25/10/2026):** semanas 1 a 4 concluídas, Web UI do Job Radar no ar; falta o encerramento (até 15/11, créditos expiram em 16/11).
 
 ## Em números
 
@@ -28,7 +28,7 @@ Cluster Kubernetes autogerenciado (kubeadm) em 3 VMs na Google Cloud, montado do
  │ cp-1 (4 vCPU/16 GB)          worker-1 (2/8)            worker-2 (2/8)      │
  │ control plane                cloudflared ─► Traefik (Gateway API)          │
  │ Prometheus/Grafana           api · worker · Postgres ─► disco PD (10 GB)   │
- │ Argo CD                      CronJobs: coleta, backup ─► bucket GCS         │
+ │ Argo CD                      Web UI + API · CronJobs: coleta, backup ─► GCS│
  │                   Cilium (sem kube-proxy) · Sealed Secrets                 │
  └────────────────────────────────────────────────────────────────────────────┘
         ▲ kubectl / SSH pela tailnet (Tailscale)        ▲ Argo CD lê o Git (k8s-lab)
@@ -60,7 +60,7 @@ Cluster Kubernetes autogerenciado (kubeadm) em 3 VMs na Google Cloud, montado do
 | [06 — Plataforma](docs/06-plataforma.md) | local-path e Sealed Secrets |
 | [07 — Cloudflare Tunnel](docs/07-cloudflare-tunnel.md) | Publicação em HTTPS sem portas abertas |
 | [08 — Observabilidade](docs/08-observabilidade.md) | Prometheus, Alertmanager e Grafana |
-| [09 — Job Radar](docs/09-job-radar.md) | O app no cluster e os problemas do primeiro deploy |
+| [09 — Job Radar](docs/09-job-radar.md) | O app no cluster, a Web UI (exposição pública, CSP) e os problemas do primeiro deploy |
 | [10 — Resiliência](docs/10-resiliencia.md) | Drain, rollout/rollback e kill de pods medidos de fora; `preStop`; trava do worker |
 | [11 — Discos gerenciados](docs/11-discos-gerenciados.md) | GCE PD CSI e a migração do Postgres sem perda |
 | [12 — Backup](docs/12-backup.md) | `pg_dump` diário no GCS; restauração testada; o Terraform que ia desanexar o disco |
@@ -85,6 +85,7 @@ Cluster Kubernetes autogerenciado (kubeadm) em 3 VMs na Google Cloud, montado do
 | Terraform ia desanexar o disco do Postgres | Cada campo com um só dono (`ignore_changes`); ler o `plan` sempre |
 | Memória do worker crescendo 115 Mi/dia | Métrica ≠ processo: o `working_set` incluía cache do kernel gerado pela liveness |
 | Argo CD `OutOfSync` para sempre | Valores padrão do servidor; comparação pelo servidor (`ServerSideDiff`) |
+| Redirect da Web UI para `http://` atrás do túnel | Atrás de proxy, URL absoluta gerada pelo app herda o esquema interno; redirect só com o caminho |
 
 ## Reproduzindo
 

@@ -9,7 +9,7 @@ O [Job Radar](https://github.com/paulocerqr/job-radar) roda no lab com a mesma i
                   coletar-gupy (1/h) · coletar-github · coletar-solides (2/2h)
                               │ grava vagas
                               ▼
-https://jobradar-lab ──► Traefik ──► api (2 réplicas) ──► Postgres (StatefulSet, 10 GB pd-balanced)
+https://jobradar-lab ──► Traefik ──► api (2 réplicas: Web UI + API JSON) ──► Postgres (StatefulSet, 10 GB pd-balanced)
                                                              ▲
             Telegram ◄── worker (1 réplica, Recreate) ───────┘
                          alimenta a fila, audita com IA (Groq → NVIDIA → Gemini),
@@ -20,7 +20,7 @@ https://jobradar-lab ──► Traefik ──► api (2 réplicas) ──► Pos
 |---|---|---|
 | `postgres` | StatefulSet + Service | `postgres:16-alpine`, disco gerenciado de 10 GB que muda de nó ([11](11-discos-gerenciados.md)); só aceita conexões do próprio Job Radar (NetworkPolicy); backup diário no GCS ([12](12-backup.md)) |
 | `migrar` | Job (hook do Argo CD) | `job-radar migrar` (init) + `job-radar seed`; recriado a cada sincronização, depois do Postgres e antes de API/worker |
-| `api` | Deployment (2) + Service + PDB + HTTPRoute | `/healthz` (liveness) e `/readyz` (readiness: banco acessível); `jobradar-lab.utileasy.com.br` |
+| `api` | Deployment (2) + Service + PDB + HTTPRoute | Web UI na raiz e API JSON em `/api` ([Web UI](#web-ui)); `/healthz` (liveness) e `/readyz` (readiness: banco acessível); `jobradar-lab.utileasy.com.br` |
 | `worker` | Deployment (1, `Recreate`) | Scheduler + polling do Telegram: nunca 2 ao mesmo tempo (D16); liveness pelo heartbeat |
 | `coletar-gupy`, `coletar-github`, `coletar-solides` | CronJob | `timeZone: America/Sao_Paulo`, `concurrencyPolicy: Forbid`, `COLETA_NO_WORKER=false` |
 
@@ -32,7 +32,7 @@ Todos os pods: sem root, sem privilégios, sistema de arquivos somente leitura (
 |---|---|
 | `apps/job-radar/kustomization.yaml` | Lista os recursos e fixa **a versão da imagem num único lugar** (`newTag` = commit da `main`) |
 | `apps/job-radar/sealedsecret.yaml` | `DATABASE_URL`, senha do Postgres, `FERNET_KEY`, admin, token do bot e chaves de IA, cifrados |
-| `apps/job-radar/configmap.yaml` | Configuração não sensível (fuso, logs, coleta por CronJob) |
+| `apps/job-radar/configmap.yaml` | Configuração não sensível (fuso, logs, coleta por CronJob, cookie da sessão só por HTTPS) |
 | `apps/job-radar/migrar-job.yaml` | Job de migração, hook do Argo CD na onda 0 |
 | `argocd/apps/job-radar.yaml` | Application do Argo CD: aplica esta pasta e mantém o cluster igual ao Git ([13-argocd.md](13-argocd.md)) |
 
@@ -78,6 +78,33 @@ jr telegram vincular
 | Espalhamento contando pods antigos | Após atualizar, as 2 réplicas do cloudflared ficaram no mesmo nó | `matchLabelKeys: [pod-template-hash]`: cada versão é espalhada por si só |
 | Modelo da NVIDIA | `404 Function ... Not found`: o `nemotron-3-super-120b` aparece na lista de modelos mas não atende mais | Trocado para `nvidia/nemotron-3.5-lightning-30b-a3b` (testado: 1,2 s) |
 
+## Web UI
+
+Desde 25/10/2026 o Job Radar tem interface web, no mesmo endereço: login, Visão geral, Vagas (com o parecer da IA e os botões confirmar/ignorar, os mesmos do Telegram), Meu perfil, Providers de IA e Fontes e coleta.
+
+| Decisão | Por quê |
+|---|---|
+| Next.js com **exportação estática**, servida pela própria API | Nenhum Deployment novo: o Node só existe num estágio do Dockerfile, e a imagem cresceu 720 KB. A mesma imagem, a mesma `newTag` e o mesmo GitOps |
+| Mesma origem (UI e `/api` no mesmo domínio) | Sem CORS; a sessão é um cookie `HttpOnly`, `Secure`, `SameSite=Lax` |
+| Chave da sessão derivada da `FERNET_KEY` | Nenhum segredo novo no SealedSecret; as 2 réplicas da API validam o mesmo cookie |
+| `SESSAO_COOKIE_SEGURO: "true"` no ConfigMap | O cookie só trafega por HTTPS (a Cloudflare termina o TLS) |
+| "Coletar agora" roda na API, em segundo plano | Mesmo código dos CronJobs; uma coleta da mesma fonte em andamento bloqueia outra. Fonte desativada na UI faz o CronJob sair sem coletar |
+
+### Exposição pública
+
+A tela de login fica aberta na internet (pelo Cloudflare Tunnel, sem porta aberta no cluster). Proteções:
+
+- senha com argon2 e bloqueio de 5 minutos após 5 falhas (por IP e por e-mail);
+- toda escrita exige corpo JSON **e** o cabeçalho `X-CSRF-Token` da sessão: um formulário de outro site não consegue mandar nenhum dos dois;
+- **CSP com hash dos scripts**: o Next coloca scripts inline no HTML; em vez de liberar `'unsafe-inline'`, a API calcula na inicialização o SHA-256 de cada um e só esses rodam. As respostas da API têm `default-src 'none'`;
+- chaves dos providers nunca vão ao navegador (só os 4 últimos caracteres); cadastro e troca de chave seguem pelo CLI.
+
+Evolução possível: Cloudflare Access na frente (login da Cloudflare antes de chegar ao cluster).
+
+### Problema: redirect para `http://` atrás do túnel
+
+`/login` (sem barra) redirecionava para **`http://`**`jobradar-lab.../login/`. O tráfego chega ao pod como HTTP (Cloudflare → túnel → Traefik → pod) e o servidor de arquivos estáticos montava a URL absoluta com esse esquema. Correção no app: redirect só com o caminho (`Location: /login/`), e o navegador mantém o `https`. Lição: atrás de proxy, URL absoluta gerada pelo app é suspeita; caminho relativo não depende de cabeçalhos `X-Forwarded-*`.
+
 ## Conferindo
 
 ```bash
@@ -85,7 +112,10 @@ kubectl -n job-radar get pods -o wide
 kubectl -n job-radar get cronjobs
 kubectl -n job-radar logs deploy/worker | grep -E "auditoria|notifica|polling"
 # coleta manual, fora do horário
-kubectl -n job-radar create job --from=cronjob/coletar-gupy coletar-gupy-manual
+kubectl -n job-radar create job --from=cronjob/coletar-gupy coletar-gupy-manual   # ou "Coletar agora" na Web UI
+# Web UI: sem sessão, a API responde 401 e a raiz carrega a tela de login
+curl -s -o /dev/null -w '%{http_code}\n' https://jobradar-lab.utileasy.com.br/api/vagas   # 401
+curl -sI https://jobradar-lab.utileasy.com.br/login | grep -i location                     # /login/ (sem esquema)
 ```
 
 Primeira coleta (21/10/2026): Gupy 92 vagas (4 no pool), GitHub 30 vagas (14 no pool).

@@ -127,3 +127,46 @@ spec:
                 allowPrivilegeEscalation: false
                 readOnlyRootFilesystem: true
                 capabilities: {drop: ["ALL"]}
+---
+apiVersion: batch/v1
+kind: CronJob
+metadata:
+  annotations:
+    argocd.argoproj.io/sync-wave: "1"
+  name: coletar-linkedin
+spec:
+  schedule: "0 8-20/4 * * *"          # 08h, 12h, 16h e 20h de Brasília
+  timeZone: America/Sao_Paulo
+  concurrencyPolicy: Forbid
+  suspend: false   # explícito: o apply desfaz um "suspend" manual (ex.: manutenção do banco)
+  successfulJobsHistoryLimit: 2
+  failedJobsHistoryLimit: 3
+  jobTemplate:
+    spec:
+      backoffLimit: 0   # sem repetição imediata se o LinkedIn bloquear a coleta
+      activeDeadlineSeconds: 900
+      template:
+        metadata:
+          labels: {app: coletar}
+        spec:
+          restartPolicy: Never
+          # sem variáveis automáticas dos Services: o Service "api" geraria
+          # API_PORT=tcp://..., que colide com a configuração API_PORT do app
+          enableServiceLinks: false
+          securityContext:
+            runAsNonRoot: true
+            seccompProfile: {type: RuntimeDefault}
+          containers:
+            - name: coletar
+              image: ghcr.io/paulocerqr/job-radar
+              args: ["coletar", "jobspy"]
+              envFrom:
+                - configMapRef: {name: job-radar}
+                - secretRef: {name: job-radar}
+              resources:
+                requests: {cpu: 50m, memory: 128Mi}
+                limits: {memory: 256Mi}
+              securityContext:
+                allowPrivilegeEscalation: false
+                readOnlyRootFilesystem: true
+                capabilities: {drop: ["ALL"]}

@@ -25,11 +25,15 @@ spec:
       enableServiceLinks: false
       securityContext:
         runAsNonRoot: true
+        fsGroup: 10001
         seccompProfile: {type: RuntimeDefault}
       containers:
         - name: worker
           image: ghcr.io/paulocerqr/job-radar
           args: ["worker"]
+          env:
+            - name: CODEX_HOME
+              value: /var/lib/job-radar/codex/home
           envFrom:
             - configMapRef: {name: job-radar}
             - secretRef: {name: job-radar}
@@ -46,14 +50,18 @@ spec:
             periodSeconds: 60
             timeoutSeconds: 15
           resources:
-            requests: {cpu: 50m, memory: 128Mi}   # medido: ~75 Mi típico, 136 Mi máx (docs/14-recursos.md)
-            limits: {memory: 256Mi}
+            requests: {cpu: 100m, memory: 256Mi}
+            limits: {memory: 512Mi}   # Codex medido em ~300 Mi, além do processo do worker
           securityContext:
             allowPrivilegeEscalation: false
             readOnlyRootFilesystem: true
             capabilities: {drop: ["ALL"]}
           volumeMounts:
             - {name: tmp, mountPath: /tmp}
+            - {name: codex-auth, mountPath: /var/lib/job-radar/codex}
       volumes:
         - name: tmp
           emptyDir: {}
+        - name: codex-auth
+          persistentVolumeClaim:
+            claimName: codex-auth

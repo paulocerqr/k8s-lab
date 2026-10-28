@@ -14,6 +14,7 @@ resources:
   - postgres.yaml
   - api.yaml
   - worker.yaml
+  - codex-auth-pvc.yaml
   - cronjobs.yaml
   - backup.yaml
   - migrar-job.yaml   # hook do Argo CD (onda 0)

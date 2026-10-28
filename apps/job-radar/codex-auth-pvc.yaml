@@ -1,0 +1,14 @@
+# Cache de autenticação do Codex, atualizado pelo próprio CLI; nunca vai para o Git.
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: codex-auth
+  annotations:
+    # Mesma onda do worker: WaitForFirstConsumer precisa do pod para vincular o disco.
+    argocd.argoproj.io/sync-wave: "1"
+spec:
+  accessModes: [ReadWriteOnce]
+  storageClassName: pd-balanced
+  resources:
+    requests:
+      storage: 10Gi

@@ -4,6 +4,19 @@ Cluster Kubernetes autogerenciado (kubeadm) em 3 VMs na Google Cloud, montado do
 
 **Status**: Quando os creditos gratuitos GPC acabarem, o sistema Job Radar será migrado para um unico servidor Oracle(4vCPU + 24GB de RAM) e rodará com kubernetes(k3s)
 
+## Teste o Job Radar
+
+Acesse [jobradar-lab.utileasy.com.br](https://jobradar-lab.utileasy.com.br) com a conta pública de demonstração:
+
+| Campo | Valor |
+|---|---|
+| E-mail | `usuario_teste@gmail.com` |
+| Senha | `usuarioteste01` |
+
+O [currículo fictício para teste](docs/curriculo-teste.md) representa um estudante em busca de estágio em desenvolvimento fullstack, com Python, JavaScript, React, NestJS, PostgreSQL e Java. Ele pode ser usado na seção **Meu perfil** para testar a análise de aderência das vagas.
+
+A conta é compartilhada entre visitantes. Use apenas dados fictícios e preserve as credenciais para que outras pessoas também possam testar.
+
 ## Em números
 
 | | |

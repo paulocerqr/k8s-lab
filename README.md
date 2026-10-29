@@ -17,39 +17,26 @@ Cluster Kubernetes autogerenciado (kubeadm) em 3 VMs na Google Cloud, montado do
 
 ## Arquitetura
 
-O **cluster** reúne três **nós** (VMs). Cada nó executa **pods**, que abrigam os containers dos programas. O diagrama mostra o fluxo entre os componentes; a tabela abaixo mostra sua distribuição nos servidores.
+O **cluster** reúne três **nós** (VMs). Cada nó executa **pods**, que abrigam os containers dos programas. O diagrama mostra o fluxo do Job Radar; a tabela abaixo mostra a distribuição dos principais pods nos servidores.
 
 ```mermaid
 flowchart TB
     Usuario["Usuário"] -->|HTTPS| Cloudflare["Cloudflare"]
 
-    subgraph Cluster["Cluster Kubernetes — 3 nós na Google Cloud"]
-        Tunnel["cloudflared<br/>2 pods"]
-        Traefik["Traefik — Gateway API<br/>2 pods"]
-        API["Job Radar — Web UI e API<br/>2 pods"]
-        Worker["Job Radar — worker<br/>1 pod"]
-        CronJobs["CronJobs<br/>Coleta e backup"]
-        Banco["PostgreSQL<br/>1 pod"]
-
-        Controle["Control plane<br/>Coordena o cluster"]
-        Monitoramento["Prometheus + Grafana<br/>Métricas e painéis"]
-        Argo["Argo CD<br/>Sincroniza aplicações"]
-
-        Tunnel --> Traefik --> API
-        API --> Banco
-        Worker --> Banco
-        CronJobs --> Banco
-    end
-
-    Cloudflare -->|Túnel cifrado| Tunnel
-    Git["Git — k8s-lab"] -.->|Configuração das aplicações| Argo
-    Admin["Administração"] -.->|SSH e kubectl via Tailscale| Cluster
-    Banco --> Disco["Disco persistente GCE PD — 10 GB"]
-    CronJobs -->|Backup diário| GCS["Bucket GCS"]
+    Cloudflare -->|Túnel cifrado| Tunnel["cloudflared · 2 pods"]
+    Tunnel --> Traefik["Traefik · 2 pods"]
+    Traefik --> API["Job Radar — Web UI e API<br/>2 réplicas"]
+    API --> Banco[("PostgreSQL<br/>1 pod")]
+    Worker["Job Radar — worker<br/>1 pod"] --> Banco
+    Coleta["CronJobs de coleta"] --> Banco
+    Banco --- Disco[("Disco GCE PD<br/>10 GB")]
+    Banco -->|Leitura pelo CronJob de backup| Backup["Backup diário"]
+    Backup --> GCS[("Bucket GCS")]
 ```
 
+Os componentes entre o `cloudflared` e o backup executam no cluster Kubernetes; a Cloudflare, o disco GCE PD e o bucket GCS são serviços externos aos pods.
 
-Os dois pods da API do Job Radar são réplicas da mesma aplicação: ambos servem a Web UI e a API e compartilham o mesmo banco PostgreSQL. 
+Os dois pods da API do Job Radar são réplicas da mesma aplicação: ambos servem a Web UI e a API e compartilham o mesmo banco PostgreSQL.
 
 O `cloudflared` inicia as conexões de saída para a Cloudflare; as setas mostram o caminho das requisições, sem abertura de portas públicas de entrada. O tráfego interno passa pelos Services do Kubernetes e pode atravessar os nós: não há um caminho fixo entre pods do mesmo servidor.
 
@@ -60,6 +47,8 @@ O `cloudflared` inicia as conexões de saída para a Cloudflare; as setas mostra
 | `worker-2` | 2 vCPU / 8 GB RAM | cloudflared, Traefik e API |
 
 A distribuição pode mudar quando o Kubernetes recria ou reagenda pods, respeitando as regras de cada aplicação. O Postgres usa disco gerenciado e pode mudar de worker; os dados do Prometheus ficam no disco local do `cp-1`. Pods auxiliares foram omitidos para simplificar a leitura.
+
+O control plane coordena o cluster. O Prometheus coleta métricas, e o Grafana as apresenta em painéis. O Argo CD sincroniza as aplicações com o repositório `k8s-lab`. A administração usa SSH e `kubectl` pela tailnet do Tailscale.
 
 ### Onde fica cada configuração
 

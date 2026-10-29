@@ -106,3 +106,50 @@ Nada sensível vai para o Git: `terraform.tfvars`, state, kubeconfig, tokens e a
 ## Créditos e encerramento
 
 O lab roda com créditos que expiram em **16/11/2026**. O checklist de encerramento ([plano §7](docs/plano.md)) cobre o backup final, o custo real consumido, os discos do PD CSI (que o `terraform destroy` não apaga) e a conferência no console.
+
+
+### Diagrama Mermaid
+
+```mermaid
+flowchart TB
+    Usuario["Usuário"] --> Cloudflare["Cloudflare Tunnel"]
+
+    subgraph Cluster["Cluster Kubernetes — k8s-lab"]
+        subgraph Principal["Nó principal: cp-1"]
+            Controle["Pods de controle do Kubernetes<br/>Coordenam o cluster"]
+            Grafana["Pod Grafana<br/>Visualização de métricas"]
+            Prometheus["Pod Prometheus<br/>Coleta e armazena métricas"]
+            Argo["Pods Argo CD<br/>Sincronizam aplicações com o Git"]
+
+            Grafana --> Prometheus
+        end
+
+        subgraph Worker1["Nó: worker-1"]
+            Tunnel1["Pod cloudflared"]
+            Traefik1["Pod Traefik<br/>Encaminha requisições"]
+            API1["Pod Job Radar — API<br/>Interface web e API"]
+            Worker["Pod Job Radar — worker<br/>Processamento e Telegram"]
+            Postgres["Pod PostgreSQL<br/>Banco de dados"]
+
+            Tunnel1 --> Traefik1 --> API1
+            API1 --> Postgres
+            Worker --> Postgres
+        end
+
+        subgraph Worker2["Nó: worker-2"]
+            Tunnel2["Pod cloudflared"]
+            Traefik2["Pod Traefik<br/>Encaminha requisições"]
+            API2["Pod Job Radar — API<br/>Interface web e API"]
+
+            Tunnel2 --> Traefik2 --> API2
+        end
+
+        API2 --> Postgres
+    end
+
+    Cloudflare --> Tunnel1
+    Cloudflare --> Tunnel2
+
+    Git["Repositório k8s-lab"] -.-> Argo
+    Postgres --> Disco["Disco persistente do PostgreSQL"]
+```

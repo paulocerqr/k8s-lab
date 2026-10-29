@@ -2,7 +2,7 @@
 
 Cluster Kubernetes autogerenciado (kubeadm) em 3 VMs na Google Cloud, montado do zero com Terraform e Ansible, acessado só pela tailnet (Tailscale), publicado sem portas abertas (Cloudflare Tunnel) e com deploy por GitOps (Argo CD). A aplicação principal é o [Job Radar](https://github.com/paulocerqr/job-radar), com Web UI no ar em **https://jobradar-lab.utileasy.com.br**.
 
-**Status (25/10/2026):** semanas 1 a 4 concluídas, Web UI do Job Radar no ar; falta o encerramento (até 15/11, créditos expiram em 16/11).
+**Status**: Quando os creditos gratuitos GPC acabarem, o sistema Job Radar será migrado para um unico servidor Oracle(4vCPU + 24GB de RAM) e rodará com kubernetes(k3s)
 
 ## Em números
 
@@ -17,23 +17,61 @@ Cluster Kubernetes autogerenciado (kubeadm) em 3 VMs na Google Cloud, montado do
 
 ## Arquitetura
 
+O **cluster** reúne três **nós** (VMs). Cada nó executa **pods**, que abrigam os containers dos programas. O diagrama mostra o fluxo entre os componentes; a tabela abaixo mostra sua distribuição nos servidores.
+
+```mermaid
+flowchart TB
+    Usuario["Usuário"] -->|HTTPS| Cloudflare["Cloudflare"]
+
+    subgraph Cluster["Cluster Kubernetes — 3 nós na Google Cloud"]
+        Tunnel["cloudflared<br/>2 pods"]
+        Traefik["Traefik — Gateway API<br/>2 pods"]
+        API["Job Radar — Web UI e API<br/>2 pods"]
+        Worker["Job Radar — worker<br/>1 pod"]
+        CronJobs["CronJobs<br/>Coleta e backup"]
+        Banco["PostgreSQL<br/>1 pod"]
+
+        Controle["Control plane<br/>Coordena o cluster"]
+        Monitoramento["Prometheus + Grafana<br/>Métricas e painéis"]
+        Argo["Argo CD<br/>Sincroniza aplicações"]
+
+        Tunnel --> Traefik --> API
+        API --> Banco
+        Worker --> Banco
+        CronJobs --> Banco
+    end
+
+    Cloudflare -->|Túnel cifrado| Tunnel
+    Git["Git — k8s-lab"] -.->|Configuração das aplicações| Argo
+    Admin["Administração"] -.->|SSH e kubectl via Tailscale| Cluster
+    Banco --> Disco["Disco persistente GCE PD — 10 GB"]
+    CronJobs -->|Backup diário| GCS["Bucket GCS"]
 ```
-                          internet
-                             │ HTTPS (certificado da Cloudflare)
-                             ▼
-                        Cloudflare ══ túnel (conexões de saída) ══╗
-                                                                   ║
-  GCP · VPC própria · nenhuma porta de entrada aberta              ║
- ┌───────────────────────────────────────────────────────────────╨───────────┐
- │ cp-1 (4 vCPU/16 GB)          worker-1 (2/8)            worker-2 (2/8)      │
- │ control plane                cloudflared ─► Traefik (Gateway API)          │
- │ Prometheus/Grafana           api · worker · Postgres ─► disco PD (10 GB)   │
- │ Argo CD                      Web UI + API · CronJobs: coleta, backup ─► GCS│
- │                   Cilium (sem kube-proxy) · Sealed Secrets                 │
- └────────────────────────────────────────────────────────────────────────────┘
-        ▲ kubectl / SSH pela tailnet (Tailscale)        ▲ Argo CD lê o Git (k8s-lab)
-     administração                                   CI do Job Radar atualiza a tag
-```
+
+
+Os dois pods da API do Job Radar são réplicas da mesma aplicação: ambos servem a Web UI e a API e compartilham o mesmo banco PostgreSQL. 
+
+O `cloudflared` inicia as conexões de saída para a Cloudflare; as setas mostram o caminho das requisições, sem abertura de portas públicas de entrada. O tráfego interno passa pelos Services do Kubernetes e pode atravessar os nós: não há um caminho fixo entre pods do mesmo servidor.
+
+| Nó | Recursos | Principais pods na distribuição observada em 29/10/2026 |
+|---|---|---|
+| `cp-1` | 4 vCPU / 16 GB RAM | Controle do Kubernetes, Prometheus, Grafana e Argo CD |
+| `worker-1` | 2 vCPU / 8 GB RAM | cloudflared, Traefik, API, worker e Postgres |
+| `worker-2` | 2 vCPU / 8 GB RAM | cloudflared, Traefik e API |
+
+A distribuição pode mudar quando o Kubernetes recria ou reagenda pods, respeitando as regras de cada aplicação. O Postgres usa disco gerenciado e pode mudar de worker; os dados do Prometheus ficam no disco local do `cp-1`. Pods auxiliares foram omitidos para simplificar a leitura.
+
+### Onde fica cada configuração
+
+| Diretório | Responsabilidade |
+|---|---|
+| [`terraform/`](terraform/) | Cria a infraestrutura na Google Cloud |
+| [`ansible/`](ansible/) | Instala e configura o cluster e a plataforma |
+| [`cluster/`](cluster/) | Define os componentes da plataforma, como Traefik, cloudflared e monitoramento |
+| [`apps/`](apps/) | Define as aplicações, incluindo API, worker, Postgres e CronJobs do Job Radar |
+| [`argocd/`](argocd/) | Define quais aplicações e caminhos do Git o Argo CD sincroniza |
+
+### Componentes e escolhas
 
 | Camada | Escolha | Documento |
 |---|---|---|
@@ -91,6 +129,8 @@ Cluster Kubernetes autogerenciado (kubeadm) em 3 VMs na Google Cloud, montado do
 
 Pré-requisitos: `gcloud`, `terraform`, `ansible`, `kubectl`, `helm`, `kubeseal`; projeto GCP com faturamento e Compute Engine API; Tailscale com `tag:k8s-lab` nas ACLs; a cópia da chave do Sealed Secrets em `~/.config/k8s-lab/` (sem ela, os SealedSecrets do Git precisam ser recriados).
 
+Para publicar as aplicações, o túnel e as rotas de hostname precisam ser configurados no painel da Cloudflare, com o token correspondente no SealedSecret. Essa preparação externa está descrita em [07 — Cloudflare Tunnel](docs/07-cloudflare-tunnel.md#passo-a-passo-como-foi-feito); o `site.yml` instala o conector no cluster, mas não cria o túnel nem suas rotas no painel.
+
 ```bash
 gcloud auth application-default login
 cd terraform && cp terraform.tfvars.example terraform.tfvars   # projeto e auth key do Tailscale
@@ -106,50 +146,3 @@ Nada sensível vai para o Git: `terraform.tfvars`, state, kubeconfig, tokens e a
 ## Créditos e encerramento
 
 O lab roda com créditos que expiram em **16/11/2026**. O checklist de encerramento ([plano §7](docs/plano.md)) cobre o backup final, o custo real consumido, os discos do PD CSI (que o `terraform destroy` não apaga) e a conferência no console.
-
-
-### Diagrama Mermaid
-
-```mermaid
-flowchart TB
-    Usuario["Usuário"] --> Cloudflare["Cloudflare Tunnel"]
-
-    subgraph Cluster["Cluster Kubernetes — k8s-lab"]
-        subgraph Principal["Nó principal: cp-1"]
-            Controle["Pods de controle do Kubernetes<br/>Coordenam o cluster"]
-            Grafana["Pod Grafana<br/>Visualização de métricas"]
-            Prometheus["Pod Prometheus<br/>Coleta e armazena métricas"]
-            Argo["Pods Argo CD<br/>Sincronizam aplicações com o Git"]
-
-            Grafana --> Prometheus
-        end
-
-        subgraph Worker1["Nó: worker-1"]
-            Tunnel1["Pod cloudflared"]
-            Traefik1["Pod Traefik<br/>Encaminha requisições"]
-            API1["Pod Job Radar — API<br/>Interface web e API"]
-            Worker["Pod Job Radar — worker<br/>Processamento e Telegram"]
-            Postgres["Pod PostgreSQL<br/>Banco de dados"]
-
-            Tunnel1 --> Traefik1 --> API1
-            API1 --> Postgres
-            Worker --> Postgres
-        end
-
-        subgraph Worker2["Nó: worker-2"]
-            Tunnel2["Pod cloudflared"]
-            Traefik2["Pod Traefik<br/>Encaminha requisições"]
-            API2["Pod Job Radar — API<br/>Interface web e API"]
-
-            Tunnel2 --> Traefik2 --> API2
-        end
-
-        API2 --> Postgres
-    end
-
-    Cloudflare --> Tunnel1
-    Cloudflare --> Tunnel2
-
-    Git["Repositório k8s-lab"] -.-> Argo
-    Postgres --> Disco["Disco persistente do PostgreSQL"]
-```

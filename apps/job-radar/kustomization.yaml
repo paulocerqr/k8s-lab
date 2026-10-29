@@ -21,4 +21,4 @@ resources:
   - networkpolicy.yaml
 images:
   - name: ghcr.io/paulocerqr/job-radar
-    newTag: 87faed757cea6491ae1929a5e3c1ee382610a1c6   # commit da main publicado pelo CI
+    newTag: 3b3e8c605f500c56609a985b11a172196a889856   # commit da main publicado pelo CI
